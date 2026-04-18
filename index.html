@@ -1,0 +1,1734 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<meta name="theme-color" content="#4A7FE0"/>
+<meta name="mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-capable" content="yes"/>
+<meta name="apple-mobile-web-app-title" content="Zoomly"/>
+<title>Zoomly 🐾</title>
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+body{background:#EFF4FF;font-family:'Nunito',sans-serif;overscroll-behavior:none;}
+::-webkit-scrollbar{display:none;}
+textarea,input,select{font-family:'Nunito',sans-serif;}
+@keyframes bounce{0%,100%{transform:translateY(0);}50%{transform:translateY(-5px);}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+@keyframes spin{from{transform:rotate(0deg);}to{transform:rotate(360deg);}}
+.fade{animation:fadeIn 0.25s ease;}
+</style>
+</head>
+<body>
+<div id="root" style="max-width:430px;margin:0 auto;min-height:100vh;"></div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, doc, setDoc, getDoc, updateDoc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+const app = initializeApp({
+  apiKey:"AIzaSyC1q2YdrnyiDMJGnvpuKQ-QksSN0UTziZM",
+  authDomain:"zoomly-41976.firebaseapp.com",
+  projectId:"zoomly-41976",
+  storageBucket:"zoomly-41976.firebasestorage.app",
+  messagingSenderId:"177537430867",
+  appId:"1:177537430867:web:445e9eaa69eaf2bec01da6"
+});
+const auth = getAuth(app);
+const db = getFirestore(app);
+window._fb = {
+  createUser:(e,p)=>createUserWithEmailAndPassword(auth,e,p),
+  signIn:(e,p)=>signInWithEmailAndPassword(auth,e,p),
+  signOut:()=>signOut(auth),
+  onAuth:(cb)=>onAuthStateChanged(auth,cb),
+  setDoc:(col,id,data)=>setDoc(doc(db,col,id),data),
+  getDoc:(col,id)=>getDoc(doc(db,col,id)),
+  updateDoc:(col,id,data)=>updateDoc(doc(db,col,id),data),
+};
+window.dispatchEvent(new Event("fb-ready"));
+</script>
+
+<script src="mascot.js"></script>
+<script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+<script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+<script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+<script src="https://unpkg.com/qrcode@1.5.3/build/qrcode.min.js"></script>
+<script type="text/babel">
+const {useState,useEffect,useRef,useCallback} = React;
+
+const C={
+  blue:"#4A7FE0",blueL:"#EFF4FF",blueM:"#C8D9F8",blueDark:"#2856B0",
+  purple:"#7B5CC4",purpleL:"#EDE8FF",
+  gold:"#E8A020",goldL:"#FFF3D6",
+  brown:"#3C1E1E",cream:"#F8EFE0",
+  text:"#1A2C5B",textL:"#6B82B8",
+  white:"#FFFFFF",red:"#E05050",
+  green:"#3DBE7A",greenL:"#E0F7EC",
+  orange:"#F0802A",orangeL:"#FFF0E5",
+  pink:"#E87FAA",pinkL:"#FFE8F2",
+};
+
+// MASCOT chargé depuis mascot.js
+
+function Mascot({size=80}){
+  return <img src={MASCOT} alt="Zoomly" style={{width:size,height:size,objectFit:"contain",display:"block"}}/>;
+}
+
+// ── UI ────────────────────────────────────────────────────
+function Btn({children,onClick,disabled,outline,ghost,color,style={}}){
+  const bg=disabled?C.blueM:outline||ghost?"transparent":color==="gold"?C.gold:color==="red"?C.red:color==="green"?C.green:color==="pink"?C.pink:"linear-gradient(135deg,"+C.blue+","+C.purple+")";
+  const border=outline?"2px solid "+(color==="gold"?C.gold:color==="red"?C.red:color==="green"?C.green:C.blue):ghost?"2px solid "+C.blueM:"none";
+  const col=disabled?C.textL:outline?(color==="gold"?C.gold:color==="red"?C.red:color==="green"?C.green:C.blue):ghost?C.textL:"white";
+  return <button onClick={onClick} disabled={disabled} style={{width:"100%",padding:"14px",borderRadius:16,border,background:bg,color:col,fontWeight:800,fontSize:14,cursor:disabled?"not-allowed":"pointer",fontFamily:"Nunito,sans-serif",opacity:disabled?0.5:1,...style}}>{children}</button>;
+}
+
+function Inp({label,value,onChange,type="text",placeholder="",multiline,rows=3}){
+  const s={width:"100%",padding:"12px 16px",borderRadius:14,border:"2px solid "+C.blueM,fontSize:14,color:C.text,fontFamily:"Nunito,sans-serif",outline:"none",background:"white",resize:"none"};
+  return <div style={{marginBottom:14}}>
+    {label&&<p style={{margin:"0 0 6px",fontSize:13,fontWeight:700,color:C.text}}>{label}</p>}
+    {multiline?<textarea value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} rows={rows} style={s}/>
+    :<input type={type} value={value} onChange={e=>onChange(e.target.value)} placeholder={placeholder} style={s}/>}
+  </div>;
+}
+
+function Card({children,style={},onClick}){
+  return <div onClick={onClick} style={{background:"white",borderRadius:20,padding:"16px 18px",marginBottom:14,boxShadow:"0 2px 16px rgba(74,127,224,0.12)",...style}}>{children}</div>;
+}
+
+function Tag({children,color="blue",style={}}){
+  const bg=color==="gold"?C.goldL:color==="green"?C.greenL:color==="purple"?C.purpleL:color==="pink"?C.pinkL:color==="orange"?C.orangeL:C.blueM;
+  const col=color==="gold"?C.gold:color==="green"?C.green:color==="purple"?C.purple:color==="pink"?C.pink:color==="orange"?C.orange:C.blue;
+  return <span style={{background:bg,color:col,borderRadius:20,padding:"3px 10px",fontSize:11,fontWeight:700,display:"inline-block",...style}}>{children}</span>;
+}
+
+function ScoreRing({score=74}){
+  const r=42,c=2*Math.PI*r,col=score>75?C.green:score>40?C.gold:C.orange;
+  return <svg width={110} height={110} viewBox="0 0 100 100">
+    <circle cx="50" cy="50" r={r} fill="none" stroke={C.blueM} strokeWidth="10"/>
+    <circle cx="50" cy="50" r={r} fill="none" stroke={col} strokeWidth="10" strokeLinecap="round"
+      strokeDasharray={c} strokeDashoffset={c*(1-score/100)} transform="rotate(-90 50 50)"/>
+    <text x="50" y="47" textAnchor="middle" fontSize="20" fontWeight="bold" fill={C.text} fontFamily="serif">{score}</text>
+    <text x="50" y="60" textAnchor="middle" fontSize="9" fill={C.textL} fontFamily="sans-serif">/100</text>
+  </svg>;
+}
+
+function Loader(){
+  return <div style={{display:"flex",gap:6,justifyContent:"center",padding:"16px 0"}}>
+    {[0,1,2].map(i=><span key={i} style={{width:8,height:8,borderRadius:"50%",background:C.blue,display:"inline-block",animation:"bounce 1s ease "+i*0.2+"s infinite"}}/>)}
+  </div>;
+}
+
+// ── AUTH ──────────────────────────────────────────────────
+function AuthScreen({onAuth}){
+  const [mode,setMode]=useState("login");
+  const [email,setEmail]=useState("");
+  const [pw,setPw]=useState("");
+  const [pw2,setPw2]=useState("");
+  const [err,setErr]=useState("");
+  const [load,setLoad]=useState(false);
+
+  const handle=async()=>{
+    setErr("");setLoad(true);
+    try{
+      if(mode==="register"){
+        if(pw!==pw2){setErr("Mots de passe différents.");setLoad(false);return;}
+        if(pw.length<6){setErr("6 caractères minimum.");setLoad(false);return;}
+        const c=await window._fb.createUser(email,pw);
+        onAuth(c.user,true);
+      }else{
+        const c=await window._fb.signIn(email,pw);
+        onAuth(c.user,false);
+      }
+    }catch(e){
+      const m={"auth/email-already-in-use":"Email déjà utilisé.","auth/invalid-email":"Email invalide.","auth/wrong-password":"Mot de passe incorrect.","auth/user-not-found":"Aucun compte trouvé.","auth/invalid-credential":"Email ou mot de passe incorrect."};
+      setErr(m[e.code]||"Erreur : "+e.message);
+    }
+    setLoad(false);
+  };
+
+  return <div style={{minHeight:"100vh",background:"linear-gradient(160deg,"+C.blue+" 0%,"+C.purple+" 100%)",display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",padding:"32px 24px"}}>
+    <div style={{textAlign:"center",marginBottom:28}}>
+      <div style={{background:"white",borderRadius:28,padding:16,display:"inline-block",marginBottom:16,boxShadow:"0 8px 32px rgba(0,0,0,0.15)"}}><Mascot size={90}/></div>
+      <h1 style={{color:"white",fontFamily:"Georgia,serif",margin:"0 0 6px",fontSize:34}}>Zoomly</h1>
+      <p style={{color:"rgba(255,255,255,0.85)",fontSize:14}}>Le compagnon santé de ton chien 🐾</p>
+    </div>
+    <div style={{width:"100%",maxWidth:400,background:"white",borderRadius:24,padding:24,boxShadow:"0 16px 48px rgba(0,0,0,0.2)"}}>
+      <div style={{display:"flex",background:C.blueL,borderRadius:14,padding:4,marginBottom:20}}>
+        {["login","register"].map(m=><button key={m} onClick={()=>{setMode(m);setErr("");}} style={{flex:1,padding:"10px",borderRadius:11,border:"none",cursor:"pointer",background:mode===m?"white":"transparent",color:mode===m?C.blue:C.textL,fontWeight:700,fontSize:13,fontFamily:"Nunito,sans-serif"}}>{m==="login"?"Connexion":"Créer un compte"}</button>)}
+      </div>
+      <Inp label="Email" type="email" value={email} onChange={setEmail} placeholder="ton@email.com"/>
+      <Inp label="Mot de passe" type="password" value={pw} onChange={setPw} placeholder="••••••••"/>
+      {mode==="register"&&<Inp label="Confirmer le mot de passe" type="password" value={pw2} onChange={setPw2} placeholder="••••••••"/>}
+      {err&&<p style={{color:C.red,fontSize:13,margin:"0 0 12px",textAlign:"center",background:"#FFF0F0",padding:"8px",borderRadius:10}}>{err}</p>}
+      <Btn onClick={handle} disabled={load||!email||!pw}>{load?"Chargement…":mode==="login"?"Se connecter 🐾":"Créer mon compte 🐾"}</Btn>
+    </div>
+    <p style={{color:"rgba(255,255,255,0.7)",fontSize:11,marginTop:16,textAlign:"center"}}>🔒 Données privées · Jamais revendues</p>
+  </div>;
+}
+
+// ── ONBOARDING ────────────────────────────────────────────
+const RACES_LIST=["Berger Australien","Border Collie","Labrador","Golden Retriever","Husky Sibérien","Berger Allemand","Bulldog Français","Chihuahua","Beagle","Caniche","Malinois","Rottweiler","Dalmatien","Shiba Inu","Berger Blanc Suisse","Jack Russell","Cocker Spaniel","Samoyède","Akita Inu","Dogue Allemand","Spitz","Yorkshire","Bichon","Carlin","Boxer","Dobermann","Setter Irlandais","Épagneul Breton","Schnauzer","Teckel","Basenji","Lévrier","Greyhound","Whippet","Shar Pei","Chow Chow"];
+// ── FICHES RACES — générées par Gemini ───────────────────
+const FICHES_RACES = {}; // Gemini génère les fiches dynamiquement
+
+
+function FicheRace({race, onClose}) {
+  const [fiche,setFiche]=useState(null);
+  const [load,setLoad]=useState(true);
+  const KEY="zoomly_fiche_"+race;
+
+  useEffect(()=>{
+    const cached=localStorage.getItem(KEY);
+    if(cached){setFiche(JSON.parse(cached));setLoad(false);return;}
+    callGemini(
+      'Expert vétérinaire canin suisse. Génère une fiche race complète et précise. JSON VALIDE uniquement sans markdown: {"poids":"X-Xkg","dureeVie":"X-Xans","caractere":["trait1","trait2","trait3","trait4","trait5"],"energie":1-5,"socialisation":1-5,"dressage":1-5,"entretien":1-5,"exercice":"description exercice","alimentation":"besoins alimentaires précis","sante":["prédisposition1","prédisposition2","prédisposition3"],"toilettage":"description","enfants":"⭐x/5 — explication","conseil":"conseil clé important"}',
+      "Race: "+race+". Sois précis et complet, adapté à la Suisse."
+    ).then(t=>{
+      try{
+        const json=t.replace(/```json|```/g,"").trim();
+        const f=JSON.parse(json);
+        setFiche(f);
+        localStorage.setItem(KEY,JSON.stringify(f));
+      }catch{setFiche({poids:"variable",dureeVie:"10-15 ans",caractere:["Loyal","Affectueux","Joueur"],energie:3,socialisation:3,dressage:3,entretien:3,exercice:"30-60 min/jour",alimentation:"Alimentation équilibrée adaptée à la taille",sante:["Consulter le vétérinaire régulièrement"],toilettage:"Brossage régulier",enfants:"⭐⭐⭐⭐ Bon avec les enfants",conseil:"Chaque chien est unique — adaptez-vous à sa personnalité !"});}
+      setLoad(false);
+    });
+  },[race]);
+
+  const StarBar=({val,max=5,color=C.blue})=>(
+    <div style={{display:"flex",gap:3}}>
+      {Array.from({length:max}).map((_,i)=><div key={i} style={{width:20,height:8,borderRadius:4,background:i<val?color:C.blueM}}/>)}
+    </div>
+  );
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <button onClick={onClose} style={{background:"none",border:"none",cursor:"pointer",color:C.blue,fontWeight:700,fontSize:14,marginBottom:16,padding:0}}>← Retour au profil</button>
+    <div style={{background:"linear-gradient(135deg,"+C.blue+","+C.purple+")",borderRadius:24,padding:"20px",marginBottom:14,textAlign:"center"}}>
+      <h2 style={{color:"white",fontFamily:"Georgia,serif",fontSize:24,margin:"0 0 12px"}}>{race}</h2>
+      {load?<p style={{color:"rgba(255,255,255,0.7)",fontSize:13}}>Génération de la fiche…</p>:
+      <><p style={{color:"rgba(255,255,255,0.8)",fontSize:13,margin:"0 0 10px"}}>{fiche?.poids} · {fiche?.dureeVie}</p>
+      <div style={{display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap"}}>
+        {fiche?.caractere?.map(c=><span key={c} style={{background:"rgba(255,255,255,0.2)",color:"white",borderRadius:20,padding:"4px 12px",fontSize:11,fontWeight:700}}>{c}</span>)}
+      </div></>}
+    </div>
+    {load?<Card><Loader/><p style={{textAlign:"center",color:C.textL,fontSize:13}}>Gemini génère la fiche de {race}…</p></Card>:<>
+    <Card>
+      <h4 style={{color:C.text,margin:"0 0 14px"}}>📊 Caractéristiques</h4>
+      {[["Énergie",fiche?.energie,C.red],["Sociabilité",fiche?.socialisation,C.green],["Dressabilité",fiche?.dressage,C.blue],["Entretien",fiche?.entretien,C.purple]].map(([l,v,c])=><div key={l} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:10}}>
+        <span style={{fontSize:13,color:C.textL,width:100}}>{l}</span>
+        <StarBar val={v||3} color={c}/>
+      </div>)}
+    </Card>
+    <Card><h4 style={{color:C.text,margin:"0 0 8px"}}>🏃 Exercice</h4><p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.6}}>{fiche?.exercice}</p></Card>
+    <Card><h4 style={{color:C.text,margin:"0 0 8px"}}>🍽️ Alimentation</h4><p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.6}}>{fiche?.alimentation}</p></Card>
+    <Card><h4 style={{color:C.text,margin:"0 0 10px"}}>🏥 Prédispositions santé</h4>{fiche?.sante?.map((s,i)=><div key={i} style={{display:"flex",gap:8,marginBottom:6}}><span style={{color:C.orange}}>⚠️</span><p style={{margin:0,fontSize:13,color:C.text}}>{s}</p></div>)}</Card>
+    <Card><h4 style={{color:C.text,margin:"0 0 8px"}}>✂️ Toilettage</h4><p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.6}}>{fiche?.toilettage}</p></Card>
+    <Card><h4 style={{color:C.text,margin:"0 0 6px"}}>👶 Avec les enfants</h4><p style={{margin:0,fontSize:14,color:C.text}}>{fiche?.enfants}</p></Card>
+    <Card style={{background:C.goldL}}><h4 style={{color:C.gold,margin:"0 0 8px"}}>💡 Conseil clé</h4><p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.6}}>{fiche?.conseil}</p></Card>
+    </>}
+  </div>;
+}
+
+
+function Onboarding({user,onDone}){
+  const [step,setStep]=useState(0);
+  const [d,setD]=useState({name:"",birthday:"",isCroise:false,races:[],raceLibre:"",age:"",ageUnit:"mois",weight:"",sex:"female",sterilized:"yes",notes:""});
+  const [load,setLoad]=useState(false);
+  const [search,setSearch]=useState("");
+  const set=(k,v)=>setD(p=>({...p,[k]:v}));
+
+  const toggleRace=r=>{
+    if(d.races.includes(r))set("races",d.races.filter(x=>x!==r));
+    else if(d.races.length<4)set("races",[...d.races,r]);
+  };
+
+  const save=async()=>{
+    setLoad(true);
+    const raceLabel=d.isCroise?(d.races.length>0?"Croisé "+d.races.join(" × "):(d.raceLibre||"Croisé")):d.races[0]||"Race inconnue";
+    const dog={...d,raceLabel,createdAt:new Date().toISOString()};
+    await window._fb.setDoc("users",user.uid,{dog,email:user.email});
+    onDone(dog);
+  };
+
+  const filtered=RACES_LIST.filter(r=>r.toLowerCase().includes(search.toLowerCase()));
+  const canNext=[true,!!d.name,d.isCroise?(d.races.length>0||!!d.raceLibre):d.races.length>0,!!d.age&&!!d.weight,true];
+
+  const steps=[
+    <div style={{textAlign:"center"}} className="fade">
+      <Mascot size={100}/>
+      <h2 style={{color:C.text,fontFamily:"Georgia,serif",fontSize:24,margin:"16px 0 10px"}}>Bienvenue sur Zoomly ! 🐾</h2>
+      <p style={{color:C.textL,fontSize:14,lineHeight:1.7,margin:"0 0 24px"}}>Créons le profil de ton chien pour des conseils vraiment personnalisés !</p>
+      <Btn onClick={()=>setStep(1)}>C'est parti ! →</Btn>
+    </div>,
+
+    <div className="fade">
+      <h3 style={{color:C.text,fontFamily:"Georgia,serif",fontSize:20,margin:"0 0 16px"}}>Ton chien 🐶</h3>
+      <Inp label="Prénom" value={d.name} onChange={v=>set("name",v)} placeholder="Ex: Myra"/>
+      <Inp label="Date de naissance" type="date" value={d.birthday} onChange={v=>set("birthday",v)}/>
+      <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:C.text}}>Sexe</p>
+      <div style={{display:"flex",gap:10,marginBottom:14}}>
+        {[["female","♀ Femelle"],["male","♂ Mâle"]].map(([v,l])=><button key={v} onClick={()=>set("sex",v)} style={{flex:1,padding:"12px",borderRadius:14,cursor:"pointer",fontWeight:700,fontSize:14,border:"2px solid "+(d.sex===v?C.blue:C.blueM),background:d.sex===v?C.blueL:"white",color:d.sex===v?C.blue:C.textL,fontFamily:"Nunito,sans-serif"}}>{l}</button>)}
+      </div>
+      <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:C.text}}>Stérilisé·e ?</p>
+      <div style={{display:"flex",gap:10}}>
+        {[["yes","✓ Oui"],["no","✗ Non"]].map(([v,l])=><button key={v} onClick={()=>set("sterilized",v)} style={{flex:1,padding:"11px",borderRadius:14,cursor:"pointer",fontWeight:700,fontSize:13,border:"2px solid "+(d.sterilized===v?C.blue:C.blueM),background:d.sterilized===v?C.blueL:"white",color:d.sterilized===v?C.blue:C.textL,fontFamily:"Nunito,sans-serif"}}>{l}</button>)}
+      </div>
+    </div>,
+
+    <div className="fade">
+      <h3 style={{color:C.text,fontFamily:"Georgia,serif",fontSize:20,margin:"0 0 6px"}}>Race 🏷️</h3>
+      <p style={{color:C.textL,fontSize:13,margin:"0 0 14px"}}>Les conseils seront adaptés à sa race</p>
+      <div style={{display:"flex",gap:10,marginBottom:14}}>
+        {[[false,"Race pure 🐕"],[true,"Croisé 🐕‍🦺"]].map(([v,l])=><button key={String(v)} onClick={()=>{set("isCroise",v);set("races",[]);}} style={{flex:1,padding:"11px",borderRadius:14,cursor:"pointer",fontWeight:700,fontSize:13,border:"2px solid "+(d.isCroise===v?C.blue:C.blueM),background:d.isCroise===v?C.blueL:"white",color:d.isCroise===v?C.blue:C.textL,fontFamily:"Nunito,sans-serif"}}>{l}</button>)}
+      </div>
+      {d.races.length>0&&<div style={{marginBottom:10,display:"flex",gap:6,flexWrap:"wrap"}}>
+        {d.races.map(r=><span key={r} onClick={()=>toggleRace(r)} style={{background:C.blue,color:"white",borderRadius:20,padding:"4px 12px",fontSize:12,fontWeight:700,cursor:"pointer"}}>× {r}</span>)}
+      </div>}
+      {d.isCroise&&<p style={{color:C.textL,fontSize:12,margin:"0 0 8px"}}>Jusqu'à 4 races ({d.races.length}/4)</p>}
+      <input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Rechercher une race…" style={{width:"100%",padding:"11px 14px",borderRadius:14,border:"2px solid "+C.blueM,fontSize:13,color:C.text,fontFamily:"Nunito,sans-serif",outline:"none",marginBottom:8}}/>
+      <div style={{maxHeight:260,overflowY:"auto",display:"flex",flexDirection:"column",gap:6}}>
+        {filtered.map(r=>{
+          const sel=d.isCroise?d.races.includes(r):d.races[0]===r;
+          return <button key={r} onClick={()=>d.isCroise?toggleRace(r):set("races",[r])} style={{padding:"10px 14px",borderRadius:12,cursor:"pointer",textAlign:"left",fontWeight:600,fontSize:13,border:"2px solid "+(sel?C.blue:C.blueM),background:sel?C.blueL:"white",color:sel?C.blue:C.text,fontFamily:"Nunito,sans-serif"}}>{sel?"✓ ":""}{r}</button>;
+        })}
+      </div>
+      {d.isCroise&&<div style={{marginTop:10}}><Inp label="Ou décris librement" value={d.raceLibre} onChange={v=>set("raceLibre",v)} placeholder="Ex: Croisé Labrador Caniche"/></div>}
+    </div>,
+
+    <div className="fade">
+      <h3 style={{color:C.text,fontFamily:"Georgia,serif",fontSize:20,margin:"0 0 16px"}}>Âge et poids 📏</h3>
+      <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:C.text}}>Âge</p>
+      <div style={{display:"flex",gap:10,marginBottom:16}}>
+        <input type="number" value={d.age} onChange={e=>set("age",e.target.value)} placeholder="Ex: 8" style={{flex:1,padding:"12px 16px",borderRadius:14,border:"2px solid "+C.blueM,fontSize:14,color:C.text,fontFamily:"Nunito,sans-serif",outline:"none"}}/>
+        <div style={{display:"flex",background:C.blueL,borderRadius:14,padding:4}}>
+          {["mois","ans"].map(u=><button key={u} onClick={()=>set("ageUnit",u)} style={{padding:"8px 14px",borderRadius:11,border:"none",cursor:"pointer",background:d.ageUnit===u?"white":"transparent",color:d.ageUnit===u?C.blue:C.textL,fontWeight:700,fontSize:13,fontFamily:"Nunito,sans-serif"}}>{u}</button>)}
+        </div>
+      </div>
+      <Inp label="Poids (kg)" type="number" value={d.weight} onChange={v=>set("weight",v)} placeholder="Ex: 14"/>
+    </div>,
+
+    <div className="fade">
+      <h3 style={{color:C.text,fontFamily:"Georgia,serif",fontSize:20,margin:"0 0 6px"}}>Infos santé 📝</h3>
+      <p style={{color:C.textL,fontSize:13,margin:"0 0 14px"}}>Allergies, maladies, caractère… (optionnel)</p>
+      <Inp multiline value={d.notes} onChange={v=>set("notes",v)} placeholder="Ex: Allergie au poulet, très énergique, craintif avec les inconnus…" rows={4}/>
+      <div style={{background:C.blueL,borderRadius:14,padding:"12px 16px",display:"flex",gap:10,alignItems:"center"}}>
+        <span style={{fontSize:20}}>🔒</span>
+        <p style={{margin:0,fontSize:12,color:C.blue,fontWeight:600}}>Données privées · Chiffrées · Jamais revendues</p>
+      </div>
+    </div>,
+  ];
+
+  return <div style={{minHeight:"100vh",background:C.blueL,padding:"24px 20px"}}>
+    <div style={{display:"flex",gap:6,marginBottom:24}}>
+      {steps.map((_,i)=><div key={i} style={{flex:1,height:5,borderRadius:99,background:i<=step?"linear-gradient(90deg,"+C.blue+","+C.purple+")":C.blueM,transition:"background 0.3s"}}/>)}
+    </div>
+    <Card style={{marginBottom:14}}>{steps[step]}</Card>
+    <div style={{display:"flex",gap:10}}>
+      {step>0&&<Btn onClick={()=>setStep(s=>s-1)} ghost style={{flex:1}}>← Retour</Btn>}
+      {step<steps.length-1
+        ?<Btn onClick={()=>setStep(s=>s+1)} disabled={!canNext[step]} style={{flex:2}}>Continuer →</Btn>
+        :<Btn onClick={save} disabled={load} style={{flex:2}}>{load?"Sauvegarde…":"🐾 Créer le profil"}</Btn>}
+    </div>
+  </div>;
+}
+
+// ── ASTROLOGIE ────────────────────────────────────────────
+const SIGNES=[
+  {nom:"Bélier",emoji:"♈",dates:"21 mars - 19 avril",element:"Feu 🔥",traits:"Courageux, énergique, impulsif",conseil:"Beaucoup d'exercice physique quotidien, il a besoin de se dépenser !",compatibilite:["Lion","Sagittaire","Gémeaux"]},
+  {nom:"Taureau",emoji:"♉",dates:"20 avril - 20 mai",element:"Terre 🌍",traits:"Stable, affectueux, têtu",conseil:"Routine et câlins sont essentiels. Il déteste les changements brusques.",compatibilite:["Vierge","Capricorne","Cancer"]},
+  {nom:"Gémeaux",emoji:"♊",dates:"21 mai - 20 juin",element:"Air 💨",traits:"Curieux, joueur, sociable",conseil:"Stimulation mentale indispensable — jouets d'intelligence et nouvelles rencontres !",compatibilite:["Balance","Verseau","Bélier"]},
+  {nom:"Cancer",emoji:"♋",dates:"21 juin - 22 juillet",element:"Eau 💧",traits:"Sensible, loyal, protecteur",conseil:"Besoin de sécurité et de tendresse. Évite les environnements stressants.",compatibilite:["Scorpion","Poissons","Taureau"]},
+  {nom:"Lion",emoji:"♌",dates:"23 juillet - 22 août",element:"Feu 🔥",traits:"Fier, joueur, aimant l'attention",conseil:"Il adore être le centre de l'attention — jeux, caresses et compliments !",compatibilite:["Bélier","Sagittaire","Gémeaux"]},
+  {nom:"Vierge",emoji:"♍",dates:"23 août - 22 septembre",element:"Terre 🌍",traits:"Intelligent, propre, observateur",conseil:"Routine stricte et propreté. Excellent pour le dressage !",compatibilite:["Taureau","Capricorne","Cancer"]},
+  {nom:"Balance",emoji:"♎",dates:"23 septembre - 22 octobre",element:"Air 💨",traits:"Harmonieux, social, doux",conseil:"Adore la compagnie. Parfait avec d'autres animaux !",compatibilite:["Gémeaux","Verseau","Lion"]},
+  {nom:"Scorpion",emoji:"♏",dates:"23 octobre - 21 novembre",element:"Eau 💧",traits:"Intense, loyal, mystérieux",conseil:"Lien fort avec son maître. Très protecteur de sa famille.",compatibilite:["Cancer","Poissons","Vierge"]},
+  {nom:"Sagittaire",emoji:"♐",dates:"22 novembre - 21 décembre",element:"Feu 🔥",traits:"Aventurier, optimiste, libre",conseil:"Grandes balades et aventures ! Ne supporte pas d'être enfermé.",compatibilite:["Bélier","Lion","Verseau"]},
+  {nom:"Capricorne",emoji:"♑",dates:"22 décembre - 19 janvier",element:"Terre 🌍",traits:"Sérieux, patient, discipliné",conseil:"Excellent pour le dressage. Aime les défis et la structure.",compatibilite:["Taureau","Vierge","Scorpion"]},
+  {nom:"Verseau",emoji:"♒",dates:"20 janvier - 18 février",element:"Air 💨",traits:"Original, indépendant, curieux",conseil:"Jouets innovants et sorties variées. N'aime pas la routine.",compatibilite:["Gémeaux","Balance","Sagittaire"]},
+  {nom:"Poissons",emoji:"♓",dates:"19 février - 20 mars",element:"Eau 💧",traits:"Empathique, doux, rêveur",conseil:"Très sensible aux émotions de son maître. Besoin de calme et de douceur.",compatibilite:["Cancer","Scorpion","Taureau"]},
+];
+
+function getSigneFromDate(dateStr){
+  if(!dateStr)return null;
+  const d=new Date(dateStr);
+  const m=d.getMonth()+1,j=d.getDate();
+  if((m===3&&j>=21)||(m===4&&j<=19))return SIGNES[0];
+  if((m===4&&j>=20)||(m===5&&j<=20))return SIGNES[1];
+  if((m===5&&j>=21)||(m===6&&j<=20))return SIGNES[2];
+  if((m===6&&j>=21)||(m===7&&j<=22))return SIGNES[3];
+  if((m===7&&j>=23)||(m===8&&j<=22))return SIGNES[4];
+  if((m===8&&j>=23)||(m===9&&j<=22))return SIGNES[5];
+  if((m===9&&j>=23)||(m===10&&j<=22))return SIGNES[6];
+  if((m===10&&j>=23)||(m===11&&j<=21))return SIGNES[7];
+  if((m===11&&j>=22)||(m===12&&j<=21))return SIGNES[8];
+  if((m===12&&j>=22)||(m===1&&j<=19))return SIGNES[9];
+  if((m===1&&j>=20)||(m===2&&j<=18))return SIGNES[10];
+  return SIGNES[11];
+}
+
+const HOROSCOPES=[
+  "Les étoiles annoncent une semaine riche en nouvelles rencontres canines ! 🐕",
+  "Vénus favorise les câlins et la complicité avec son maître cette semaine. ❤️",
+  "Mars donne un regain d'énergie — parfait pour de nouvelles aventures ! ⚡",
+  "Mercure stimule l'intelligence — idéal pour apprendre de nouveaux tours ! 🧠",
+  "Jupiter apporte chance et bonheur cette semaine. Profitez-en ! ✨",
+  "Saturne invite au calme et à la récupération. Repos bien mérité ! 😴",
+  "La Lune amplifie les émotions — soyez attentif à son humeur ! 🌙",
+  "Neptune ouvre la porte aux rêves. Des nuits paisibles en perspective ! 🌟",
+];
+
+function PageAstrologie({dog}){
+  const signe=getSigneFromDate(dog.birthday);
+  const horoscope=HOROSCOPES[new Date().getDay()%HOROSCOPES.length];
+
+  if(!dog.birthday) return <div style={{padding:"24px 16px",textAlign:"center"}} className="fade">
+    <span style={{fontSize:64}}>🌙</span>
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"16px 0 8px"}}>Astrologie canine</h2>
+    <p style={{color:C.textL,fontSize:14,lineHeight:1.6}}>La date de naissance de {dog.name} n'est pas renseignée.</p>
+    <p style={{color:C.textL,fontSize:13,marginTop:8}}>Modifie son profil pour découvrir son signe ! ✨</p>
+  </div>;
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Astrologie canine 🌙</h2>
+    <p style={{color:C.textL,fontSize:13,margin:"0 0 16px"}}>Les astres révèlent la personnalité de {dog.name}</p>
+
+    {/* Signe principal */}
+    <div style={{background:"linear-gradient(135deg,#1a0533,#2d1b69)",borderRadius:24,padding:"24px 20px",marginBottom:14,textAlign:"center",position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,bottom:0,opacity:0.1,background:"radial-gradient(circle at 20% 20%,white,transparent 50%),radial-gradient(circle at 80% 80%,white,transparent 50%)"}}/>
+      <span style={{fontSize:64,display:"block",marginBottom:8}}>{signe.emoji}</span>
+      <h2 style={{color:"white",fontFamily:"Georgia,serif",fontSize:28,margin:"0 0 4px"}}>{signe.nom}</h2>
+      <p style={{color:"rgba(255,255,255,0.7)",fontSize:13,margin:"0 0 12px"}}>{signe.dates}</p>
+      <Tag color="purple" style={{background:"rgba(255,255,255,0.15)",color:"white"}}>{signe.element}</Tag>
+    </div>
+
+    {/* Traits */}
+    <Card>
+      <h4 style={{color:C.text,margin:"0 0 12px",fontSize:15}}>✨ Personnalité de {dog.name}</h4>
+      <p style={{color:C.textL,fontSize:13,lineHeight:1.6,margin:"0 0 12px"}}>"{signe.traits}"</p>
+      <div style={{background:C.purpleL,borderRadius:14,padding:"12px 14px"}}>
+        <p style={{margin:0,fontSize:13,color:C.purple,fontWeight:600,lineHeight:1.5}}>💡 {signe.conseil}</p>
+      </div>
+    </Card>
+
+    {/* Horoscope semaine */}
+    <Card style={{background:"linear-gradient(135deg,"+C.purpleL+","+C.blueL+")"}}>
+      <h4 style={{color:C.text,margin:"0 0 10px",fontSize:15}}>🔮 Horoscope de la semaine</h4>
+      <p style={{color:C.text,fontSize:14,lineHeight:1.6,margin:0}}>{horoscope}</p>
+    </Card>
+
+    {/* Compatibilité */}
+    <Card>
+      <h4 style={{color:C.text,margin:"0 0 12px",fontSize:15}}>💕 Signes compatibles</h4>
+      <p style={{color:C.textL,fontSize:12,margin:"0 0 12px"}}>Les chiens de ces signes s'entendent bien avec {dog.name} !</p>
+      <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+        {signe.compatibilite.map(s=>{
+          const sg=SIGNES.find(x=>x.nom===s);
+          return <div key={s} style={{background:C.blueL,borderRadius:16,padding:"10px 16px",textAlign:"center"}}>
+            <span style={{fontSize:24,display:"block"}}>{sg?.emoji}</span>
+            <p style={{margin:"4px 0 0",fontSize:12,fontWeight:700,color:C.blue}}>{s}</p>
+          </div>;
+        })}
+      </div>
+    </Card>
+
+    {/* Fun fact */}
+    <Card style={{background:"linear-gradient(135deg,"+C.goldL+","+C.orangeL+")"}}>
+      <h4 style={{color:C.text,margin:"0 0 8px",fontSize:15}}>⭐ Le saviez-vous ?</h4>
+      <p style={{color:C.text,fontSize:13,lineHeight:1.6,margin:0}}>Les {signe.nom} sont des chiens de l'élément {signe.element.split(" ")[0]}. Cela influence leur façon d'interagir avec le monde et leurs besoins émotionnels !</p>
+    </Card>
+
+    {/* Thème astral complet */}
+    <Card>
+      <h4 style={{color:C.text,margin:"0 0 14px",fontSize:15}}>🌌 Thème astral de {dog.name}</h4>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        {[
+          ["☀️ Signe solaire",signe.nom+" "+signe.emoji],
+          ["🌙 Signe lunaire",SIGNES[(SIGNES.indexOf(signe)+3)%12].nom+" "+SIGNES[(SIGNES.indexOf(signe)+3)%12].emoji],
+          ["⬆️ Ascendant",SIGNES[(SIGNES.indexOf(signe)+5)%12].nom+" "+SIGNES[(SIGNES.indexOf(signe)+5)%12].emoji],
+          ["🔴 Mars (énergie)",SIGNES[(SIGNES.indexOf(signe)+7)%12].nom+" "+SIGNES[(SIGNES.indexOf(signe)+7)%12].emoji],
+          ["💛 Vénus (amour)",SIGNES[(SIGNES.indexOf(signe)+2)%12].nom+" "+SIGNES[(SIGNES.indexOf(signe)+2)%12].emoji],
+          ["🧠 Mercure (intel.)",SIGNES[(SIGNES.indexOf(signe)+1)%12].nom+" "+SIGNES[(SIGNES.indexOf(signe)+1)%12].emoji],
+        ].map(([k,v])=><div key={k} style={{background:C.blueL,borderRadius:14,padding:"10px 12px"}}>
+          <p style={{margin:"0 0 3px",fontSize:11,color:C.textL,fontWeight:700}}>{k}</p>
+          <p style={{margin:0,fontSize:13,color:C.text,fontWeight:700}}>{v}</p>
+        </div>)}
+      </div>
+    </Card>
+
+    {/* Prédictions lunaires */}
+    <Card style={{background:"linear-gradient(135deg,#1a0533,#2d1b69)"}}>
+      <h4 style={{color:"white",margin:"0 0 12px",fontSize:15}}>🌕 Calendrier lunaire</h4>
+      {[
+        ["🌑 Nouvelle Lune","Nouveau départ ! Idéal pour apprendre un nouveau tour."],
+        ["🌓 Premier Quartier","Énergie montante — parfait pour les grandes balades."],
+        ["🌕 Pleine Lune","Émotions amplifiées — {dog.name} peut être plus agité·e."],
+        ["🌗 Dernier Quartier","Temps de repos et de consolidation des apprentissages."],
+      ].map(([p,t])=><div key={p} style={{marginBottom:10}}>
+        <p style={{margin:"0 0 2px",fontWeight:700,color:"rgba(255,255,255,0.9)",fontSize:13}}>{p}</p>
+        <p style={{margin:0,fontSize:12,color:"rgba(255,255,255,0.6)",lineHeight:1.4}}>{t.replace("{dog.name}",dog.name)}</p>
+      </div>)}
+    </Card>
+
+    {/* Pierres & couleurs */}
+    <Card>
+      <h4 style={{color:C.text,margin:"0 0 12px",fontSize:15}}>💎 Pierre & couleur du signe</h4>
+      <div style={{display:"flex",gap:10}}>
+        {[
+          ["Bélier","Rubis","Rouge"],["Taureau","Émeraude","Vert"],["Gémeaux","Agate","Jaune"],
+          ["Cancer","Perle","Blanc"],["Lion","Or","Doré"],["Vierge","Saphir","Bleu"],
+          ["Balance","Opale","Rose"],["Scorpion","Topaze","Bordeaux"],["Sagittaire","Turquoise","Violet"],
+          ["Capricorne","Grenat","Noir"],["Verseau","Améthyste","Bleu ciel"],["Poissons","Aigue-marine","Vert d'eau"],
+        ].filter(([s])=>s===signe.nom).map(([,pierre,couleur])=><>
+          <div style={{flex:1,background:C.purpleL,borderRadius:14,padding:"12px",textAlign:"center"}}>
+            <p style={{margin:"0 0 4px",fontSize:10,color:C.textL,fontWeight:700}}>PIERRE</p>
+            <p style={{margin:0,fontSize:14,fontWeight:800,color:C.purple}}>💎 {pierre}</p>
+          </div>
+          <div style={{flex:1,background:C.goldL,borderRadius:14,padding:"12px",textAlign:"center"}}>
+            <p style={{margin:"0 0 4px",fontSize:10,color:C.textL,fontWeight:700}}>COULEUR</p>
+            <p style={{margin:0,fontSize:14,fontWeight:800,color:C.gold}}>🎨 {couleur}</p>
+          </div>
+        </>)}
+      </div>
+    </Card>
+  </div>;
+}
+
+// ── CARNET SANTÉ ──────────────────────────────────────────
+function PageCarnetSante({dog}){
+  const KEY="zoomly_sante_"+dog.name;
+  const [entries,setEntries]=useState(()=>JSON.parse(localStorage.getItem(KEY)||"[]"));
+  const [show,setShow]=useState(false);
+  const [form,setForm]=useState({type:"vaccin",nom:"",date:"",rappel:"",notes:""});
+  const setF=(k,v)=>setForm(p=>({...p,[k]:v}));
+
+  const save=()=>{
+    if(!form.nom||!form.date)return;
+    const e={...form,id:Date.now()};
+    const next=[e,...entries];
+    setEntries(next);localStorage.setItem(KEY,JSON.stringify(next));
+    setForm({type:"vaccin",nom:"",date:"",rappel:"",notes:""});setShow(false);
+  };
+
+  const del=id=>{const next=entries.filter(e=>e.id!==id);setEntries(next);localStorage.setItem(KEY,JSON.stringify(next));};
+
+  const types=[
+    {v:"vaccin",l:"💉 Vaccin",c:C.blue},
+    {v:"vermifuge",l:"🐛 Vermifuge",c:C.green},
+    {v:"parasitaire",l:"🦟 Antiparasitaire",c:C.orange},
+    {v:"medicament",l:"💊 Médicament",c:C.purple},
+    {v:"rdv",l:"🏥 RDV véto",c:C.red},
+    {v:"autre",l:"📋 Autre",c:C.textL},
+  ];
+
+  const getColor=t=>types.find(x=>x.v===t)?.c||C.textL;
+  const getLabel=t=>types.find(x=>x.v===t)?.l||t;
+
+  // Rappels à venir (dans les 30 prochains jours)
+  const today=new Date();
+  const rappels=entries.filter(e=>{
+    if(!e.rappel)return false;
+    const d=new Date(e.rappel);
+    const diff=(d-today)/(1000*60*60*24);
+    return diff>=0&&diff<=30;
+  }).sort((a,b)=>new Date(a.rappel)-new Date(b.rappel));
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Carnet de santé 📅</h2>
+    <p style={{color:C.textL,fontSize:13,margin:"0 0 16px"}}>Suivi médical de {dog.name}</p>
+
+    {rappels.length>0&&<Card style={{background:"linear-gradient(135deg,"+C.orangeL+","+C.goldL+")"}}>
+      <h4 style={{color:C.orange,margin:"0 0 10px",fontSize:14}}>⏰ Rappels à venir</h4>
+      {rappels.map(r=>{
+        const j=Math.round((new Date(r.rappel)-today)/(1000*60*60*24));
+        return <div key={r.id} style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:6}}>
+          <p style={{margin:0,fontSize:13,color:C.text,fontWeight:600}}>{getLabel(r.type)} — {r.nom}</p>
+          <Tag color={j<=7?"orange":"gold"}>{j===0?"Aujourd'hui":j===1?"Demain":"Dans "+j+"j"}</Tag>
+        </div>;
+      })}
+    </Card>}
+
+    {!show?<Btn onClick={()=>setShow(true)} style={{marginBottom:16}}>+ Ajouter un soin</Btn>
+    :<Card>
+      <h4 style={{color:C.text,margin:"0 0 14px"}}>Nouveau soin</h4>
+      <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:C.text}}>Type</p>
+      <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:14}}>
+        {types.map(t=><button key={t.v} onClick={()=>setF("type",t.v)} style={{padding:"8px 14px",borderRadius:20,border:"2px solid "+(form.type===t.v?t.c:C.blueM),background:form.type===t.v?"white":"transparent",color:form.type===t.v?t.c:C.textL,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"Nunito,sans-serif"}}>{t.l}</button>)}
+      </div>
+      <Inp label="Nom du soin" value={form.nom} onChange={v=>setF("nom",v)} placeholder="Ex: Vaccin rage, Frontline…"/>
+      <Inp label="Date du soin" type="date" value={form.date} onChange={v=>setF("date",v)}/>
+      <Inp label="Date de rappel (optionnel)" type="date" value={form.rappel} onChange={v=>setF("rappel",v)}/>
+      <Inp label="Notes" value={form.notes} onChange={v=>setF("notes",v)} placeholder="Remarques…"/>
+      <div style={{display:"flex",gap:10}}>
+        <Btn onClick={save} disabled={!form.nom||!form.date} style={{flex:2}}>💾 Sauvegarder</Btn>
+        <Btn onClick={()=>setShow(false)} ghost style={{flex:1}}>Annuler</Btn>
+      </div>
+    </Card>}
+
+    {entries.length===0&&!show&&<div style={{textAlign:"center",padding:"40px 0",color:C.textL}}>
+      <span style={{fontSize:48,display:"block",marginBottom:12}}>💉</span>
+      <p style={{fontSize:14}}>Aucun soin enregistré</p>
+      <p style={{fontSize:13}}>Commence par ajouter un vaccin ou un vermifuge !</p>
+    </div>}
+
+    {entries.map(e=><Card key={e.id}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start"}}>
+        <div style={{flex:1}}>
+          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:6}}>
+            <Tag color={e.type==="vaccin"?"blue":e.type==="vermifuge"?"green":e.type==="parasitaire"?"orange":e.type==="rdv"?"red":"purple"}>{getLabel(e.type)}</Tag>
+            <p style={{margin:0,fontWeight:700,color:C.text,fontSize:14}}>{e.nom}</p>
+          </div>
+          <p style={{margin:"0 0 4px",fontSize:12,color:C.textL}}>📅 {new Date(e.date).toLocaleDateString("fr-FR")}</p>
+          {e.rappel&&<p style={{margin:"0 0 4px",fontSize:12,color:C.orange}}>⏰ Rappel: {new Date(e.rappel).toLocaleDateString("fr-FR")}</p>}
+          {e.notes&&<p style={{margin:0,fontSize:12,color:C.textL,fontStyle:"italic"}}>{e.notes}</p>}
+        </div>
+        <button onClick={()=>del(e.id)} style={{background:"none",border:"none",cursor:"pointer",color:C.textL,fontSize:18,padding:"0 0 0 8px"}}>×</button>
+      </div>
+    </Card>)}
+  </div>;
+}
+
+// ── ÉDUCATION ─────────────────────────────────────────────
+const EXERCICES=[
+  {id:1,nom:"Assis",emoji:"🐕",niveau:"Débutant",duree:5,race:"tous",desc:"La base ! Tenir une friandise au-dessus de la tête, dire 'Assis' et attendre que les fesses touchent le sol.",etapes:["Tiens une friandise devant son nez","Lève lentement la main vers le haut","Dis 'Assis' clairement","Récompense dès que les fesses touchent le sol","Répète 5 fois par session"]},
+  {id:2,nom:"Couché",emoji:"🦮",niveau:"Débutant",duree:5,race:"tous",desc:"À faire après 'Assis'. Faire descendre la main avec la friandise vers le sol.",etapes:["Demande d'abord 'Assis'","Tiens une friandise devant son nez","Baisse lentement la main vers le sol","Dis 'Couché' quand il descend","Récompense dès qu'il est allongé"]},
+  {id:3,nom:"Reste",emoji:"✋",niveau:"Intermédiaire",duree:10,race:"tous",desc:"Apprendre à rester immobile. Commencer par 2 secondes puis augmenter progressivement.",etapes:["Demande 'Assis' ou 'Couché'","Dis 'Reste' avec la paume vers lui","Fais un pas en arrière","Reviens et récompense","Augmente progressivement la distance"]},
+  {id:4,nom:"Rappel",emoji:"📣",niveau:"Intermédiaire",duree:10,race:"tous",desc:"Le plus important pour la sécurité ! Toujours récompenser généreusement.",etapes:["Commence en intérieur","Appelle son prénom + 'Viens !'","Baisse-toi à son niveau","Récompense TOUJOURS quand il arrive","Ne jamais gronder après un rappel"]},
+  {id:5,nom:"Donne la patte",emoji:"🤝",niveau:"Débutant",duree:5,race:"tous",desc:"Tour facile et amusant ! Parfait pour renforcer la confiance.",etapes:["Demande 'Assis'","Tiens une friandise dans ta paume fermée","Attends qu'il gratte ta main","Dis 'Donne la patte' et ouvre la main","Récompense et recommence"]},
+  {id:6,nom:"Marche en laisse",emoji:"🚶",niveau:"Intermédiaire",duree:15,race:"tous",desc:"Marcher sans tirer. La cohérence est la clé !",etapes:["Commence dans un endroit calme","Tiens la laisse courte mais détendue","Si il tire : STOP, attends qu'il revienne","Récompense quand la laisse est détendue","Augmente progressivement les distractions"]},
+  {id:7,nom:"Cherche !",emoji:"🔍",niveau:"Avancé",duree:15,race:"tous",desc:"Excellente stimulation mentale. Idéal pour les races de berger et de chasse.",etapes:["Cache une friandise visible d'abord","Dis 'Cherche !'","Encourage-le à explorer","Récompense quand il trouve","Cache de plus en plus loin"]},
+  {id:8,nom:"Tourne",emoji:"🔄",niveau:"Avancé",duree:10,race:"tous",desc:"Tour amusant ! Faire faire un tour complet sur lui-même.",etapes:["Tiens une friandise devant son nez","Fais lentement un cercle complet","Dis 'Tourne' pendant le mouvement","Récompense après le tour complet","Réduis progressivement le guidage"]},
+];
+
+function PageEducation({dog}){
+  const KEY="zoomly_edu_"+dog.name;
+  const [progress,setProgress]=useState(()=>JSON.parse(localStorage.getItem(KEY)||"{}"));
+  const [sel,setSel]=useState(null);
+  const [timer,setTimer]=useState(0);
+  const [running,setRunning]=useState(false);
+  const timerRef=useRef(null);
+
+  const startTimer=dur=>{
+    setTimer(dur*60);setRunning(true);
+    timerRef.current=setInterval(()=>{
+      setTimer(t=>{if(t<=1){clearInterval(timerRef.current);setRunning(false);return 0;}return t-1;});
+    },1000);
+  };
+
+  const stopTimer=()=>{clearInterval(timerRef.current);setRunning(false);setTimer(0);};
+
+  const markDone=id=>{
+    const next={...progress,[id]:(progress[id]||0)+1};
+    setProgress(next);localStorage.setItem(KEY,JSON.stringify(next));
+  };
+
+  const fmt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+  const niveauColor=n=>n==="Débutant"?C.green:n==="Intermédiaire"?C.gold:C.orange;
+
+  if(sel) return <div style={{padding:"24px 16px"}} className="fade">
+    <button onClick={()=>{setSel(null);stopTimer();}} style={{background:"none",border:"none",cursor:"pointer",color:C.blue,fontWeight:700,fontSize:14,marginBottom:16,padding:0}}>← Retour</button>
+    <div style={{textAlign:"center",marginBottom:20}}>
+      <span style={{fontSize:52}}>{sel.emoji}</span>
+      <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"10px 0 8px"}}>{sel.nom}</h2>
+      <div style={{display:"flex",gap:8,justifyContent:"center"}}>
+        <Tag color={sel.niveau==="Débutant"?"green":sel.niveau==="Intermédiaire"?"gold":"orange"}>{sel.niveau}</Tag>
+        <Tag>⏱ {sel.duree} min</Tag>
+        {(progress[sel.id]||0)>0&&<Tag color="purple">✓ {progress[sel.id]} fois réussi</Tag>}
+      </div>
+    </div>
+
+    <Card><p style={{color:C.textL,fontSize:14,lineHeight:1.6,margin:0}}>{sel.desc}</p></Card>
+
+    <Card>
+      <h4 style={{color:C.text,margin:"0 0 12px"}}>📋 Étapes</h4>
+      {sel.etapes.map((e,i)=><div key={i} style={{display:"flex",gap:12,marginBottom:10}}>
+        <div style={{width:26,height:26,borderRadius:"50%",background:"linear-gradient(135deg,"+C.blue+","+C.purple+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12,fontWeight:800,color:"white"}}>{i+1}</div>
+        <p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.5}}>{e}</p>
+      </div>)}
+    </Card>
+
+    {/* Timer */}
+    <Card style={{textAlign:"center"}}>
+      <h4 style={{color:C.text,margin:"0 0 16px"}}>⏱ Minuteur de séance</h4>
+      {timer>0?<div>
+        <p style={{fontSize:48,fontWeight:900,color:C.blue,margin:"0 0 16px",fontFamily:"Georgia,serif"}}>{fmt(timer)}</p>
+        <Btn onClick={stopTimer} color="red">⏹ Arrêter</Btn>
+      </div>:<Btn onClick={()=>startTimer(sel.duree)}>▶ Lancer {sel.duree} min de séance</Btn>}
+    </Card>
+
+    <Btn onClick={()=>markDone(sel.id)} color="green">✓ Séance réussie ! (+1)</Btn>
+  </div>;
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Éducation 🎓</h2>
+    <p style={{color:C.textL,fontSize:13,margin:"0 0 6px"}}>Exercices adaptés à {dog.raceLabel}</p>
+    <div style={{background:C.blueL,borderRadius:14,padding:"10px 14px",marginBottom:16,display:"flex",gap:10,alignItems:"center"}}>
+      <span style={{fontSize:18}}>💡</span>
+      <p style={{margin:0,fontSize:12,color:C.blue,fontWeight:600}}>Sessions courtes et positives = meilleurs résultats ! Jamais plus de 15 min.</p>
+    </div>
+    {EXERCICES.map(ex=><Card key={ex.id} onClick={()=>setSel(ex)} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
+      <span style={{fontSize:28}}>{ex.emoji}</span>
+      <div style={{flex:1}}>
+        <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
+          <p style={{margin:0,fontWeight:700,color:C.text,fontSize:14}}>{ex.nom}</p>
+          {(progress[ex.id]||0)>0&&<Tag color="green">✓ {progress[ex.id]}x</Tag>}
+        </div>
+        <div style={{display:"flex",gap:6}}>
+          <Tag color={ex.niveau==="Débutant"?"green":ex.niveau==="Intermédiaire"?"gold":"orange"}>{ex.niveau}</Tag>
+          <Tag>⏱ {ex.duree} min</Tag>
+        </div>
+      </div>
+      <span style={{color:C.blue,fontSize:20}}>›</span>
+    </Card>)}
+  </div>;
+}
+
+// ── SUIVI BALADES ─────────────────────────────────────────
+function PageBalades({dog}){
+  const KEY="zoomly_balades_"+dog.name;
+  const [balades,setBalades]=useState(()=>JSON.parse(localStorage.getItem(KEY)||"[]"));
+  const [running,setRunning]=useState(false);
+  const [elapsed,setElapsed]=useState(0);
+  const [dist,setDist]=useState("");
+  const [show,setShow]=useState(false);
+  const timerRef=useRef(null);
+  const startRef=useRef(null);
+
+  const start=()=>{
+    startRef.current=Date.now()-elapsed*1000;
+    setRunning(true);
+    timerRef.current=setInterval(()=>setElapsed(Math.floor((Date.now()-startRef.current)/1000)),1000);
+  };
+
+  const pause=()=>{clearInterval(timerRef.current);setRunning(false);};
+  const reset=()=>{clearInterval(timerRef.current);setRunning(false);setElapsed(0);setDist("");};
+
+  const saveBalade=()=>{
+    const km=parseFloat(dist)||0;
+    const poids=parseFloat(dog.weight)||10;
+    const calories=Math.round(km*poids*0.8+elapsed/60*poids*0.05);
+    const b={id:Date.now(),date:new Date().toLocaleDateString("fr-FR"),duree:elapsed,distance:km,calories,};
+    const next=[b,...balades];
+    setBalades(next);localStorage.setItem(KEY,JSON.stringify(next));
+    reset();setShow(false);
+  };
+
+  const fmt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
+
+  // Stats
+  const totalKm=balades.reduce((a,b)=>a+(b.distance||0),0);
+  const totalMin=balades.reduce((a,b)=>a+Math.floor(b.duree/60),0);
+  const totalCal=balades.reduce((a,b)=>a+(b.calories||0),0);
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Balades 🚶</h2>
+    <p style={{color:C.textL,fontSize:13,margin:"0 0 16px"}}>Suivi des sorties de {dog.name}</p>
+
+    {/* Stats globales */}
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:10,marginBottom:14}}>
+      {[["🏃",totalKm.toFixed(1)+" km","Distance"],["⏱",totalMin+" min","Durée totale"],["🔥",totalCal+" kcal","Calories"]].map(([e,v,l])=><Card key={l} style={{textAlign:"center",marginBottom:0,padding:"12px 8px"}}>
+        <span style={{fontSize:20,display:"block"}}>{e}</span>
+        <p style={{margin:"4px 0 0",fontWeight:800,color:C.text,fontSize:14}}>{v}</p>
+        <p style={{margin:0,fontSize:10,color:C.textL}}>{l}</p>
+      </Card>)}
+    </div>
+
+    {/* Timer balade */}
+    <Card style={{textAlign:"center"}}>
+      <h4 style={{color:C.text,margin:"0 0 16px"}}>Balade en cours</h4>
+      <p style={{fontSize:52,fontWeight:900,color:C.blue,margin:"0 0 8px",fontFamily:"Georgia,serif"}}>{fmt(elapsed)}</p>
+      <div style={{display:"flex",gap:10,marginBottom:dist!==undefined?14:0}}>
+        {!running?<Btn onClick={start} color="green" style={{flex:1}}>▶ {elapsed>0?"Reprendre":"Démarrer"}</Btn>
+        :<Btn onClick={pause} color="orange" style={{flex:1}}>⏸ Pause</Btn>}
+        {elapsed>0&&<Btn onClick={reset} ghost style={{flex:1}}>↺ Reset</Btn>}
+      </div>
+      {elapsed>0&&!running&&<div>
+        <Inp label="Distance parcourue (km)" type="number" value={dist} onChange={setDist} placeholder="Ex: 2.5"/>
+        <Btn onClick={saveBalade} color="green">💾 Sauvegarder cette balade</Btn>
+      </div>}
+    </Card>
+
+    {balades.length===0&&<div style={{textAlign:"center",padding:"30px 0",color:C.textL}}>
+      <span style={{fontSize:48,display:"block",marginBottom:12}}>🐾</span>
+      <p style={{fontSize:14}}>Aucune balade enregistrée</p>
+    </div>}
+
+    {balades.map(b=><Card key={b.id}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{margin:"0 0 4px",fontWeight:700,color:C.text,fontSize:14}}>📅 {b.date}</p>
+          <div style={{display:"flex",gap:8}}>
+            <Tag>⏱ {fmt(b.duree)}</Tag>
+            {b.distance>0&&<Tag color="green">🏃 {b.distance} km</Tag>}
+            {b.calories>0&&<Tag color="orange">🔥 {b.calories} kcal</Tag>}
+          </div>
+        </div>
+      </div>
+    </Card>)}
+  </div>;
+}
+
+// ── RAPPELS ───────────────────────────────────────────────
+function PageRappels({dog}){
+  const KEY="zoomly_rappels_"+dog.name;
+  const [rappels,setRappels]=useState(()=>JSON.parse(localStorage.getItem(KEY)||"[]"));
+  const [show,setShow]=useState(false);
+  const [form,setForm]=useState({type:"repas",nom:"",heure:"08:00",jours:["lun","mar","mer","jeu","ven","sam","dim"],actif:true});
+  const setF=(k,v)=>setForm(p=>({...p,[k]:v}));
+
+  const jList=["lun","mar","mer","jeu","ven","sam","dim"];
+  const togJ=j=>setF("jours",form.jours.includes(j)?form.jours.filter(x=>x!==j):[...form.jours,j]);
+
+  const save=()=>{
+    if(!form.nom)return;
+    const r={...form,id:Date.now()};
+    const next=[r,...rappels];
+    setRappels(next);localStorage.setItem(KEY,JSON.stringify(next));
+    setForm({type:"repas",nom:"",heure:"08:00",jours:["lun","mar","mer","jeu","ven","sam","dim"],actif:true});
+    setShow(false);
+  };
+
+  const del=id=>{const next=rappels.filter(r=>r.id!==id);setRappels(next);localStorage.setItem(KEY,JSON.stringify(next));};
+  const tog=id=>{const next=rappels.map(r=>r.id===id?{...r,actif:!r.actif}:r);setRappels(next);localStorage.setItem(KEY,JSON.stringify(next));};
+
+  const types=[{v:"repas",l:"🍽️ Repas"},{v:"balade",l:"🚶 Balade"},{v:"medicament",l:"💊 Médicament"},{v:"rdv",l:"🏥 RDV véto"},{v:"autre",l:"🔔 Autre"}];
+  const typeColor=t=>t==="repas"?C.gold:t==="balade"?C.green:t==="medicament"?C.purple:t==="rdv"?C.red:C.blue;
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Rappels 🔔</h2>
+    <p style={{color:C.textL,fontSize:13,margin:"0 0 16px"}}>Alertes pour le quotidien de {dog.name}</p>
+
+    {!show?<Btn onClick={()=>setShow(true)} style={{marginBottom:16}}>+ Ajouter un rappel</Btn>
+    :<Card>
+      <h4 style={{color:C.text,margin:"0 0 14px"}}>Nouveau rappel</h4>
+      <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:C.text}}>Type</p>
+      <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:14}}>
+        {types.map(t=><button key={t.v} onClick={()=>setF("type",t.v)} style={{padding:"8px 14px",borderRadius:20,border:"2px solid "+(form.type===t.v?typeColor(t.v):C.blueM),background:form.type===t.v?C.blueL:"white",color:form.type===t.v?typeColor(t.v):C.textL,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"Nunito,sans-serif"}}>{t.l}</button>)}
+      </div>
+      <Inp label="Nom du rappel" value={form.nom} onChange={v=>setF("nom",v)} placeholder="Ex: Repas du matin, Médicament…"/>
+      <Inp label="Heure" type="time" value={form.heure} onChange={v=>setF("heure",v)}/>
+      <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:C.text}}>Jours</p>
+      <div style={{display:"flex",gap:6,marginBottom:14}}>
+        {jList.map(j=><button key={j} onClick={()=>togJ(j)} style={{flex:1,padding:"8px 4px",borderRadius:10,border:"2px solid "+(form.jours.includes(j)?C.blue:C.blueM),background:form.jours.includes(j)?C.blueL:"white",color:form.jours.includes(j)?C.blue:C.textL,fontWeight:700,fontSize:11,cursor:"pointer",fontFamily:"Nunito,sans-serif"}}>{j}</button>)}
+      </div>
+      <div style={{display:"flex",gap:10}}>
+        <Btn onClick={save} disabled={!form.nom} style={{flex:2}}>💾 Créer</Btn>
+        <Btn onClick={()=>setShow(false)} ghost style={{flex:1}}>Annuler</Btn>
+      </div>
+    </Card>}
+
+    {rappels.length===0&&!show&&<div style={{textAlign:"center",padding:"40px 0",color:C.textL}}>
+      <span style={{fontSize:48,display:"block",marginBottom:12}}>🔔</span>
+      <p style={{fontSize:14}}>Aucun rappel configuré</p>
+    </div>}
+
+    {rappels.map(r=><Card key={r.id} style={{opacity:r.actif?1:0.6}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div style={{flex:1}}>
+          <div style={{display:"flex",gap:8,alignItems:"center",marginBottom:4}}>
+            <span style={{fontSize:18}}>{types.find(t=>t.v===r.type)?.l.split(" ")[0]||"🔔"}</span>
+            <p style={{margin:0,fontWeight:700,color:C.text,fontSize:14}}>{r.nom}</p>
+          </div>
+          <p style={{margin:"0 0 4px",fontSize:12,color:C.blue,fontWeight:600}}>⏰ {r.heure}</p>
+          <p style={{margin:0,fontSize:11,color:C.textL}}>{r.jours.join(", ")}</p>
+        </div>
+        <div style={{display:"flex",gap:8}}>
+          <button onClick={()=>tog(r.id)} style={{background:r.actif?C.green:C.blueM,border:"none",borderRadius:20,padding:"6px 12px",color:"white",fontSize:12,fontWeight:700,cursor:"pointer"}}>{r.actif?"ON":"OFF"}</button>
+          <button onClick={()=>del(r.id)} style={{background:"none",border:"none",cursor:"pointer",color:C.textL,fontSize:18}}>×</button>
+        </div>
+      </div>
+    </Card>)}
+  </div>;
+}
+
+// ── ALBUM PHOTO ───────────────────────────────────────────
+function PageAlbum({dog}){
+  const KEY="zoomly_album_"+dog.name;
+  const [photos,setPhotos]=useState(()=>JSON.parse(localStorage.getItem(KEY)||"[]"));
+  const [sel,setSel]=useState(null);
+  const fileRef=useRef(null);
+
+  const addPhoto=e=>{
+    const file=e.target.files?.[0];if(!file)return;
+    const reader=new FileReader();
+    reader.onload=ev=>{
+      const p={id:Date.now(),src:ev.target.result,date:new Date().toLocaleDateString("fr-FR"),caption:""};
+      const next=[p,...photos];
+      setPhotos(next);localStorage.setItem(KEY,JSON.stringify(next));
+    };
+    reader.readAsDataURL(file);
+  };
+
+  const del=id=>{
+    const next=photos.filter(p=>p.id!==id);
+    setPhotos(next);localStorage.setItem(KEY,JSON.stringify(next));
+    setSel(null);
+  };
+
+  if(sel) return <div style={{minHeight:"100vh",background:"#000",display:"flex",flexDirection:"column"}}>
+    <div style={{padding:"16px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+      <button onClick={()=>setSel(null)} style={{background:"rgba(255,255,255,0.2)",border:"none",borderRadius:20,padding:"8px 16px",color:"white",fontWeight:700,cursor:"pointer"}}>← Retour</button>
+      <button onClick={()=>del(sel.id)} style={{background:"rgba(255,0,0,0.5)",border:"none",borderRadius:20,padding:"8px 16px",color:"white",fontWeight:700,cursor:"pointer"}}>🗑️ Supprimer</button>
+    </div>
+    <img src={sel.src} style={{width:"100%",flex:1,objectFit:"contain"}}/>
+    <p style={{color:"rgba(255,255,255,0.7)",textAlign:"center",padding:"16px",fontSize:13}}>{sel.date}</p>
+  </div>;
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <input ref={fileRef} type="file" accept="image/*" onChange={addPhoto} style={{display:"none"}}/>
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Album photo 📸</h2>
+    <p style={{color:C.textL,fontSize:13,margin:"0 0 16px"}}>Les plus beaux souvenirs de {dog.name}</p>
+
+    <Btn onClick={()=>fileRef.current.click()} style={{marginBottom:16}}>📸 Ajouter une photo</Btn>
+
+    {photos.length===0&&<div style={{textAlign:"center",padding:"40px 0",color:C.textL}}>
+      <span style={{fontSize:48,display:"block",marginBottom:12}}>📷</span>
+      <p style={{fontSize:14}}>Aucune photo pour l'instant</p>
+    </div>}
+
+    <div style={{display:"grid",gridTemplateColumns:"1fr 1fr 1fr",gap:6}}>
+      {photos.map(p=><div key={p.id} onClick={()=>setSel(p)} style={{aspectRatio:"1",borderRadius:12,overflow:"hidden",cursor:"pointer"}}>
+        <img src={p.src} style={{width:"100%",height:"100%",objectFit:"cover"}}/>
+      </div>)}
+    </div>
+  </div>;
+}
+
+// ── CARTE D'IDENTITÉ ──────────────────────────────────────
+function PageCarteId({dog,user}){
+  const canvasRef=useRef(null);
+  const [qrDone,setQrDone]=useState(false);
+
+  useEffect(()=>{
+    if(!canvasRef.current)return;
+    const info=`🐾 ${dog.name} | ${dog.raceLabel} | ${dog.age} ${dog.ageUnit} | ${dog.weight}kg | ${dog.sex==="female"?"Femelle":"Mâle"} | Contact: ${user.email}`;
+    if(typeof QRCode!=="undefined"){
+      QRCode.toCanvas(canvasRef.current,info,{width:180,margin:2},err=>{if(!err)setQrDone(true);});
+    }
+  },[]);
+
+  const signeInfo=getSigneFromDate(dog.birthday);
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Carte d'identité 🆔</h2>
+    <p style={{color:C.textL,fontSize:13,margin:"0 0 16px"}}>Document d'identification de {dog.name}</p>
+
+    <Card style={{background:"linear-gradient(135deg,"+C.blue+","+C.purple+")",padding:"24px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"flex-start",marginBottom:16}}>
+        <div>
+          <p style={{color:"rgba(255,255,255,0.7)",fontSize:12,margin:"0 0 4px"}}>ZOOMLY · CARTE D'IDENTITÉ</p>
+          <h2 style={{color:"white",fontFamily:"Georgia,serif",fontSize:28,margin:0}}>{dog.name}</h2>
+        </div>
+        <div style={{background:"rgba(255,255,255,0.2)",borderRadius:16,padding:8}}><Mascot size={50}/></div>
+      </div>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+        {[["Race",dog.raceLabel],["Âge",dog.age+" "+dog.ageUnit],["Poids",dog.weight+" kg"],["Sexe",dog.sex==="female"?"Femelle":"Mâle"],["Stérilisé·e",dog.sterilized==="yes"?"Oui":"Non"],["Signe",signeInfo?(signeInfo.emoji+" "+signeInfo.nom):"—"]].map(([k,v])=><div key={k}>
+          <p style={{color:"rgba(255,255,255,0.6)",fontSize:10,margin:"0 0 2px"}}>{k.toUpperCase()}</p>
+          <p style={{color:"white",fontSize:13,fontWeight:700,margin:0}}>{v}</p>
+        </div>)}
+      </div>
+    </Card>
+
+    {dog.notes&&<Card><p style={{margin:"0 0 6px",fontWeight:700,color:C.text,fontSize:14}}>📝 Infos médicales importantes</p><p style={{margin:0,color:C.textL,fontSize:13,lineHeight:1.6}}>{dog.notes}</p></Card>}
+
+    <Card style={{textAlign:"center"}}>
+      <h4 style={{color:C.text,margin:"0 0 12px"}}>QR Code d'identification</h4>
+      <canvas ref={canvasRef} style={{borderRadius:12,display:"block",margin:"0 auto"}}/>
+      {!qrDone&&<p style={{color:C.textL,fontSize:13,marginTop:8}}>Génération du QR code…</p>}
+      <p style={{color:C.textL,fontSize:12,marginTop:12,lineHeight:1.5}}>📱 Ce QR code contient les infos de {dog.name}.<br/>Utile si ton chien se perd !</p>
+    </Card>
+
+    <Card style={{background:C.blueL}}>
+      <h4 style={{color:C.text,margin:"0 0 8px"}}>📞 Contact</h4>
+      <p style={{margin:0,color:C.blue,fontWeight:700,fontSize:14}}>{user.email}</p>
+    </Card>
+  </div>;
+}
+
+// ── PAGES EXISTANTES (Home, Scanner, Santé, Recettes, Journal, Chat, Profil) ──
+
+function PageHome({dog}){
+  const [tips,setTips]=useState([]);
+  const [loadTips,setLoadTips]=useState(true);
+  const [objs,setObjs]=useState([
+    {id:1,l:"Balade",i:"🐾",done:false,t:"30 min"},
+    {id:2,l:"Dressage",i:"🎯",done:false,t:"15 min"},
+    {id:3,l:"Enrichissement",i:"🧠",done:false,t:"1 session"},
+    {id:4,l:"Socialisation",i:"🐶",done:false,t:"1 interaction"},
+  ]);
+  const score=Math.round(50+objs.filter(o=>o.done).length*12);
+  const tog=id=>setObjs(p=>p.map(o=>o.id===id?{...o,done:!o.done}:o));
+  const signe=getSigneFromDate(dog.birthday);
+
+  useEffect(()=>{
+    // Gemini comme source principale
+    callGemini(
+      'Tu es un expert canin vétérinaire. Génère 3 conseils pratiques du jour adaptés PRÉCISÉMENT à cette race. Chaque conseil doit être actionnable et spécifique à la race. RÉPONDS UNIQUEMENT EN JSON VALIDE sans markdown: {"tips":[{"emoji":"emoji","title":"titre court (3-4 mots max)","text":"conseil pratique en 1 phrase, spécifique à la race"}]}',
+      "Race: "+dog.raceLabel+", "+dog.age+" "+dog.ageUnit+", "+dog.weight+"kg, "+(dog.sex==="female"?"femelle":"mâle")+", stérilisé: "+(dog.sterilized==="yes"?"oui":"non")+". Notes: "+(dog.notes||"aucune")+(dog.caracteres&&dog.caracteres.length>0?". Caractère: "+dog.caracteres.join(", "):"")
+    ).then(t=>{
+      try{
+        const json=t.replace(/```json|```/g,"").trim();
+        const p=JSON.parse(json);
+        if(p.tips&&p.tips.length>0){setTips(p.tips);}
+        else setTips([{emoji:"💧",title:"Hydratation",text:"Eau fraîche disponible en permanence."},{emoji:"❤️",title:"Câlins",text:"Quelques minutes d'affection renforcent le lien."},{emoji:"🎯",title:"Cohérence",text:"Des règles claires = chien épanoui."}]);
+      }catch{
+        setTips([{emoji:"💧",title:"Hydratation",text:"Eau fraîche disponible en permanence."},{emoji:"❤️",title:"Câlins",text:"Quelques minutes d'affection renforcent le lien."},{emoji:"🎯",title:"Cohérence",text:"Des règles claires = chien épanoui."}]);
+      }
+      setLoadTips(false);
+    }).catch(()=>{
+      setTips([{emoji:"💧",title:"Hydratation",text:"Eau fraîche disponible en permanence."},{emoji:"❤️",title:"Câlins",text:"Quelques minutes d'affection renforcent le lien."},{emoji:"🎯",title:"Cohérence",text:"Des règles claires = chien épanoui."}]);
+      setLoadTips(false);
+    });
+  },[]);
+
+  return <div style={{paddingBottom:20}} className="fade">
+    <div style={{background:"linear-gradient(135deg,"+C.blue+","+C.purple+")",borderRadius:"0 0 32px 32px",padding:"32px 20px 24px"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <p style={{color:"rgba(255,255,255,0.8)",fontSize:13,margin:"0 0 4px"}}>Bonjour ! 🌸</p>
+          <h2 style={{color:"white",fontSize:24,margin:"0 0 4px",fontFamily:"Georgia,serif"}}>Comment va {dog.name} ?</h2>
+          <p style={{color:"rgba(255,255,255,0.75)",fontSize:12}}>{dog.raceLabel} · {dog.age} {dog.ageUnit}</p>
+          {signe&&<p style={{color:"rgba(255,255,255,0.65)",fontSize:11,marginTop:2}}>{signe.emoji} {signe.nom}</p>}
+        </div>
+        <div style={{background:"rgba(255,255,255,0.2)",borderRadius:20,padding:10}}><Mascot size={64}/></div>
+      </div>
+    </div>
+
+    <div style={{padding:"18px 16px 0"}}>
+      <Card style={{display:"flex",alignItems:"center",gap:18}}>
+        <ScoreRing score={score}/>
+        <div>
+          <p style={{color:C.textL,fontSize:12,margin:"0 0 4px"}}>Score santé du jour</p>
+          <h3 style={{color:C.text,fontSize:20,margin:"0 0 8px",fontFamily:"Georgia,serif"}}>{score>75?"Excellent ! 🌟":score>50?"Bien ! 👍":"À améliorer 💪"}</h3>
+          <Tag color={score>75?"green":score>50?"gold":"blue"}>{objs.filter(o=>o.done).length}/{objs.length} objectifs</Tag>
+        </div>
+      </Card>
+
+      <Card>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:14}}>
+          <h4 style={{margin:0,color:C.text,fontSize:15}}>Objectifs du jour</h4>
+          <span style={{color:C.blue,fontWeight:800}}>{objs.filter(o=>o.done).length}/{objs.length}</span>
+        </div>
+        <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:10}}>
+          {objs.map(o=><div key={o.id} onClick={()=>tog(o.id)} style={{background:o.done?C.blueL:"#F8FAFE",borderRadius:14,padding:"10px 12px",display:"flex",alignItems:"center",gap:8,cursor:"pointer",border:"2px solid "+(o.done?C.blue:"transparent"),transition:"all 0.2s"}}>
+            <span style={{fontSize:18}}>{o.i}</span>
+            <div><p style={{margin:0,fontSize:12,fontWeight:700,color:C.text}}>{o.l}</p><p style={{margin:0,fontSize:11,color:o.done?C.green:C.textL}}>{o.done?"✓ Fait !":o.t}</p></div>
+          </div>)}
+        </div>
+      </Card>
+
+      <Card>
+        <h4 style={{margin:"0 0 14px",color:C.text,fontSize:15}}>💡 Conseils pour {dog.raceLabel}</h4>
+        {loadTips?<Loader/>:tips.map((t,i)=><div key={i} style={{display:"flex",gap:12,marginBottom:i<tips.length-1?14:0,paddingBottom:i<tips.length-1?14:0,borderBottom:i<tips.length-1?"1px solid "+C.blueL:""}}>
+          <span style={{fontSize:22}}>{t.emoji}</span>
+          <div><p style={{margin:"0 0 2px",fontWeight:700,color:C.text,fontSize:13}}>{t.title}</p><p style={{margin:0,fontSize:12,color:C.textL,lineHeight:1.5}}>{t.text}</p></div>
+        </div>)}
+      </Card>
+
+      <div style={{background:"linear-gradient(135deg,"+C.gold+","+C.orange+")",borderRadius:20,padding:"16px 20px",display:"flex",alignItems:"center",gap:16,marginBottom:14}}>
+        <span style={{fontSize:36}}>🔥</span>
+        <div><h4 style={{margin:0,color:"white",fontSize:17,fontFamily:"Georgia,serif"}}>3 jours de suite !</h4><p style={{margin:0,fontSize:12,color:"rgba(255,255,255,0.85)"}}>Record : 7 jours</p></div>
+      </div>
+
+      {/* Conseil du jour Gemini */}
+      <ConseilDuJour dog={dog}/>
+    </div>
+  </div>;
+}
+
+function ConseilDuJour({dog}){
+  const KEY="zoomly_conseil_"+new Date().toDateString();
+  const [conseil,setConseil]=useState(()=>localStorage.getItem(KEY)||"");
+  const [load,setLoad]=useState(!localStorage.getItem(KEY));
+
+  useEffect(()=>{
+    if(conseil)return;
+    callGemini(
+      "Tu es un vétérinaire et expert canin suisse. Génère UN SEUL conseil pratique du jour pour un propriétaire de chien, adapté à la race spécifique. 2-3 phrases max, utile, positif, bienveillant. Thème aléatoire: santé, alimentation, comportement, dressage, bien-être, prévention saisonnière. Commence directement par le conseil sans titre ni introduction.",
+      "Chien: "+dog.name+", "+dog.raceLabel+", "+dog.age+" "+dog.ageUnit+", "+dog.weight+"kg."
+    ).then(c=>{
+      if(c){setConseil(c);localStorage.setItem(KEY,c);}
+      setLoad(false);
+    });
+  },[]);
+
+  return <Card style={{background:"linear-gradient(135deg,"+C.purpleL+","+C.blueL+")"}}>
+    <div style={{display:"flex",gap:10,alignItems:"flex-start"}}>
+      <div style={{background:"white",borderRadius:14,padding:8,flexShrink:0}}><Mascot size={36}/></div>
+      <div style={{flex:1}}>
+        <p style={{margin:"0 0 6px",fontWeight:800,color:C.purple,fontSize:12}}>💡 CONSEIL DU JOUR</p>
+        {load?<Loader/>:<p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.6}}>{conseil||"Profite bien de ta journée avec "+dog.name+" ! 🐾"}</p>}
+      </div>
+    </div>
+  </Card>;
+}
+
+function PageScanner({dog}){
+  const [query,setQuery]=useState("");
+  const [result,setResult]=useState(null);
+  const [load,setLoad]=useState(false);
+  const [preview,setPreview]=useState(null);
+  const fileRef=useRef(null);
+
+  // Base urgences absolues (instantanée, sans Gemini)
+  const URGENCES_DB={
+    "chocolat":{level:"danger",score:2,verdict:"TOXIQUE — théobromine mortelle",good:[],bad:["Urgence vétérinaire si ingestion"],advice:"🆘 Antipoison Zürich: +41 44 251 51 51",raceNote:""},
+    "raisin":{level:"danger",score:1,verdict:"MORTEL — insuffisance rénale",good:[],bad:["Même 1-2 grains peuvent être fatals"],advice:"🆘 Urgence vétérinaire IMMÉDIATE",raceNote:""},
+    "raisin sec":{level:"danger",score:1,verdict:"EXTRÊMEMENT TOXIQUE",good:[],bad:["Plus concentré que le raisin frais"],advice:"🆘 Urgence absolue",raceNote:""},
+    "xylitol":{level:"danger",score:1,verdict:"MORTEL — présent dans produits sans sucre",good:[],bad:["Hypoglycémie mortelle en quelques minutes"],advice:"🆘 Urgence absolue. +41 44 251 51 51",raceNote:""},
+    "alcool":{level:"danger",score:1,verdict:"MORTEL même en petite quantité",good:[],bad:["Le chien ne peut pas éliminer l'alcool"],advice:"🆘 Urgence vétérinaire immédiate",raceNote:""},
+    "oignon":{level:"danger",score:5,verdict:"TOXIQUE — détruit globules rouges",good:[],bad:["5g/kg suffisent","Toxique cru, cuit, en poudre"],advice:"🚫 Éviter toute forme d'oignon",raceNote:""},
+    "ail":{level:"danger",score:5,verdict:"TOXIQUE — 5x plus que l'oignon",good:[],bad:["Anémie hémolytique","Effets cumulatifs"],advice:"🚫 Aucune quantité sûre",raceNote:""},
+    "noix macadamia":{level:"danger",score:5,verdict:"TOXIQUE — tremblements et fièvre",good:[],bad:["Même en petite quantité"],advice:"🆘 Vétérinaire si ingestion",raceNote:""},
+  };
+
+    const analyzeLocal=q=>{
+    const key=q.toLowerCase().trim();
+    for(const [mot,data] of Object.entries(URGENCES_DB)){
+      if(key.includes(mot))return data;
+    }
+    return null;
+  };
+
+  const analyze=async()=>{
+    if(!query.trim()||load)return;
+    setLoad(true);setResult(null);setPreview(null);
+    // Vérifier urgences absolues d'abord (instantané)
+    const local=analyzeLocal(query);
+    if(local){setResult(local);setLoad(false);return;}
+    // Gemini pour tout le reste
+    const sys='Expert nutrition canine. RÉPONDS UNIQUEMENT EN JSON VALIDE (pas de markdown): {"level":"safe"/"caution"/"danger","score":0-100,"verdict":"texte court","good":["point"],"bad":["point"],"advice":"conseil court","raceNote":"note spécifique à la race si pertinent"}';
+    const txt=await callGemini(sys,"Chien: "+dog.raceLabel+", "+dog.age+" "+dog.ageUnit+", "+dog.weight+"kg. Aliment/ingrédients: "+query);
+    try{
+      const json=txt.replace(/```json|```/g,"").trim();
+      setResult(JSON.parse(json));
+    }catch{
+      setResult({level:"caution",score:50,verdict:"Aliment non répertorié",good:["Consulte un vétérinaire"],bad:["Données insuffisantes"],advice:"En cas de doute, évite cet aliment.",raceNote:""});
+    }
+    setLoad(false);
+  };
+
+  const lc={safe:C.green,caution:C.gold,danger:C.red};
+  const lb={safe:C.greenL,caution:C.goldL,danger:"#FFEBEB"};
+  const ll={safe:"✅ Sûr pour "+dog.name,caution:"⚠️ Avec modération",danger:"🚫 DANGEREUX"};
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <input ref={fileRef} type="file" accept="image/*" capture="environment" onChange={async e=>{
+      const file=e.target.files?.[0];if(!file)return;
+      const reader=new FileReader();
+      reader.onload=async ev=>{
+        setPreview(ev.target.result);
+        setLoad(true);setResult(null);
+        const b64=ev.target.result.split(",")[1];
+        try{
+          const res=await fetch(
+            "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key="+GEMINI_KEY,
+            {method:"POST",headers:{"Content-Type":"application/json"},
+            body:JSON.stringify({contents:[{parts:[
+              {inline_data:{mime_type:file.type,data:b64}},
+              {text:"Identifie l'aliment dans cette image et dis si c'est bon pour un chien ("+dog.raceLabel+", "+dog.age+" "+dog.ageUnit+"). RÉPONDS UNIQUEMENT EN JSON VALIDE sans markdown: {\"identified\":\"nom aliment\",\"level\":\"safe/caution/danger\",\"score\":0-100,\"verdict\":\"texte\",\"good\":[\"point\"],\"bad\":[\"point\"],\"advice\":\"conseil\",\"raceNote\":\"note race\"}"}
+            ]}]}})
+          );
+          const data=await res.json();
+          const txt=data.candidates?.[0]?.content?.parts?.[0]?.text||"";
+          const json=txt.replace(/```json|```/g,"").trim();
+          const p=JSON.parse(json);
+          if(p.identified)setQuery(p.identified);
+          setResult(p);
+        }catch{
+          setResult({level:"caution",score:50,verdict:"Impossible d'analyser la photo",good:[],bad:["Vérification impossible"],advice:"Essaie en tapant le nom de l'aliment ci-dessous.",raceNote:""});
+        }
+        setLoad(false);
+      };
+      reader.readAsDataURL(file);
+    }} style={{display:"none"}}/>
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Scanner 🔍</h2>
+    <p style={{color:C.textL,fontSize:13,margin:"0 0 16px"}}>Vérifie si un aliment convient à {dog.name}</p>
+
+    <div onClick={()=>fileRef.current.click()} style={{background:"linear-gradient(135deg,"+C.blueL+","+C.purpleL+")",borderRadius:18,padding:"18px",marginBottom:14,cursor:"pointer",display:"flex",alignItems:"center",gap:14,border:"2px dashed "+C.blue}}>
+      {preview?<img src={preview} style={{width:56,height:56,borderRadius:12,objectFit:"cover"}}/> : <span style={{fontSize:34,background:"white",borderRadius:12,width:56,height:56,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0}}>📷</span>}
+      <div><p style={{margin:"0 0 2px",fontWeight:800,color:C.blue,fontSize:15}}>{preview?"Changer la photo":"📷 Prendre une photo"}</p><p style={{margin:0,fontSize:12,color:C.textL}}>Photo d'un aliment à analyser</p></div>
+    </div>
+
+    <Card>
+      <p style={{margin:"0 0 8px",fontSize:12,color:C.textL,fontWeight:700}}>Tape le nom d'un aliment :</p>
+      <Inp value={query} onChange={setQuery} placeholder="Ex: chocolat, poulet, raisin…"/>
+      <Btn onClick={analyze} disabled={load||!query.trim()}>{load?"Analyse…":"🔍 Analyser"}</Btn>
+    </Card>
+
+    <div style={{display:"flex",gap:8,flexWrap:"wrap",marginBottom:16}}>
+      {["Chocolat 🍫","Avocat 🥑","Poulet 🍗","Raisin 🍇","Carotte 🥕","Fromage 🧀","Saumon 🐟","Riz 🍚"].map(f=>(
+        <button key={f} onClick={()=>setQuery(f.split(" ")[0])} style={{background:"white",border:"2px solid "+C.blueM,borderRadius:20,padding:"7px 14px",color:C.blue,fontSize:12,fontWeight:700,cursor:"pointer"}}>{f}</button>
+      ))}
+    </div>
+
+    {result&&<Card className="fade">
+      <div style={{background:lb[result.level]||C.goldL,borderRadius:14,padding:"14px 16px",marginBottom:14,display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div><p style={{margin:"0 0 4px",fontWeight:800,color:lc[result.level]||C.gold,fontSize:16}}>{ll[result.level]||"⚠️"}</p><p style={{margin:0,fontSize:13,color:C.text}}>{result.verdict}</p></div>
+        <div style={{textAlign:"center",background:"white",borderRadius:12,padding:"8px 12px"}}>
+          <div style={{fontSize:24,fontWeight:900,color:lc[result.level]||C.gold}}>{result.score}</div>
+          <div style={{fontSize:10,color:C.textL}}>/100</div>
+        </div>
+      </div>
+      <div style={{background:C.blueL,borderRadius:99,height:10,marginBottom:14,overflow:"hidden"}}><div style={{background:lc[result.level]||C.gold,width:result.score+"%",height:"100%",borderRadius:99,transition:"width 1s"}}/></div>
+      {result.good?.length>0&&<div style={{marginBottom:10}}>{result.good.map((g,i)=><p key={i} style={{margin:"4px 0",fontSize:13,color:C.text}}>👍 {g}</p>)}</div>}
+      {result.bad?.length>0&&<div style={{marginBottom:10}}>{result.bad.map((b,i)=><p key={i} style={{margin:"4px 0",fontSize:13,color:C.text}}>⚠️ {b}</p>)}</div>}
+      {result.raceNote&&<div style={{background:C.purpleL,borderRadius:12,padding:"10px 14px",margin:"10px 0"}}><p style={{margin:0,fontSize:12,color:C.purple,fontWeight:700}}>🧬 {result.raceNote}</p></div>}
+      <div style={{background:C.blueL,borderRadius:12,padding:"10px 14px"}}><p style={{margin:0,fontSize:12,color:C.blue,fontWeight:600}}>💡 {result.advice}</p></div>
+      <p style={{margin:"10px 0 0",fontSize:11,color:C.textL,textAlign:"center"}}>Source : base de données vétérinaire Zoomly ⚕️</p>
+    </Card>}
+  </div>;
+}
+
+function PageSante({dog}){
+  const [syms,setSyms]=useState([]);
+  const [other,setOther]=useState("");
+  const [result,setResult]=useState(null);
+  const [load,setLoad]=useState(false);
+
+  const SL=[
+    {id:"vomit",l:"Vomissements",e:"🤢"},
+    {id:"diarrhea",l:"Diarrhée",e:"💩"},
+    {id:"lethargy",l:"Léthargie",e:"😴"},
+    {id:"noeat",l:"N'mange plus",e:"🍽️"},
+    {id:"scratch",l:"Se gratte",e:"🐾"},
+    {id:"limp",l:"Boite",e:"🦵"},
+    {id:"cough",l:"Toux",e:"😮‍💨"},
+    {id:"bloat",l:"Ventre gonflé",e:"🫧"},
+    {id:"eyes",l:"Yeux rouges/larmoyants",e:"👁️"},
+    {id:"shake",l:"Tremblements",e:"😨"},
+    {id:"drink",l:"Boit beaucoup",e:"💧"},
+    {id:"aggr",l:"Agressivité soudaine",e:"😠"},
+    {id:"breath",l:"Difficultés respiratoires",e:"😤"},
+    {id:"itch",l:"Peau irritée/rouge",e:"🔴"},
+    {id:"hair",l:"Perte de poils",e:"🪮"},
+    {id:"wt",l:"Perte de poids",e:"⚖️"},
+    {id:"wtup",l:"Prise de poids rapide",e:"🐷"},
+    {id:"pale",l:"Gencives pâles",e:"🫥"},
+    {id:"pain",l:"Crie quand touché",e:"😢"},
+    {id:"nose",l:"Nez qui coule",e:"🤧"},
+    {id:"ear",l:"Secoue la tête/oreilles",e:"👂"},
+    {id:"freq",l:"Urine fréquemment",e:"🚾"},
+    {id:"constip",l:"Constipation",e:"😬"},
+    {id:"seizure",l:"Convulsions",e:"⚡"},
+    {id:"faint",l:"S'effondre/tombe",e:"💫"},
+    {id:"confusion",l:"Désorienté/confus",e:"😵"},
+  ];
+  const tog=id=>setSyms(p=>p.includes(id)?p.filter(s=>s!==id):[...p,id]);
+
+  // Conseils basés sur symptômes sans IA
+  const evaluate=async()=>{
+    setLoad(true);setResult(null);
+    const sel=SL.filter(s=>syms.includes(s.id)).map(s=>s.l);
+    const tous=[...sel,other].filter(Boolean);
+    // Gemini analyse les symptômes
+    const sys='Tu es vétérinaire expert. Analyse ces symptômes canins et donne un avis clinique structuré. RÉPONDS UNIQUEMENT EN JSON VALIDE sans markdown: {"gravity":"faible/modérée/élevée/urgence","color":"green/orange/red/purple","title":"diagnostic probable court","summary":"explication clinique 2 phrases","actions":["action concrète 1","action 2","action 3"],"vet":true/false,"vetDelay":"délai recommandé","raceNote":"prédisposition de cette race si pertinent"}';
+    const txt=await callGemini(sys,"Chien: "+dog.raceLabel+", "+dog.age+" "+dog.ageUnit+", "+dog.weight+"kg, "+(dog.sex==="female"?"femelle":"mâle")+", stérilisé: "+(dog.sterilized==="yes"?"oui":"non")+". Notes médicales: "+(dog.notes||"aucune")+". Symptômes: "+tous.join(", "));
+    let res;
+    try{
+      const json=txt.replace(/```json|```/g,"").trim();
+      res=JSON.parse(json);
+    }catch{
+      // Fallback logique locale pour urgences absolues
+      const ids=syms;
+      if(ids.includes("seizure")||ids.includes("faint")){
+        res={gravity:"urgence",color:"purple",title:"🆘 URGENCE ABSOLUE",summary:"Convulsions ou perte de conscience = urgence vitale.",actions:["Appelez le +41 44 251 51 51 (antipoison Zürich)","Ou VetoAdom Vaud : 021 552 75 75","Transport IMMÉDIAT vétérinaire"],vet:true,vetDelay:"🆘 MAINTENANT"};
+      } else if(ids.includes("bloat")){
+        res={gravity:"urgence",color:"purple",title:"🆘 Possible torsion estomac",summary:"Ventre gonflé = urgence vitale en quelques heures.",actions:["Vétérinaire EN URGENCE","Ne donnez RIEN à manger/boire","VetoAdom Vaud: 021 552 75 75"],vet:true,vetDelay:"🆘 IMMÉDIATEMENT"};
+      } else {
+        res={gravity:"modérée",color:"orange",title:"Surveillance recommandée",summary:"Connectez Gemini pour une analyse précise. En attendant, observez votre chien.",actions:["Surveillez l'évolution","Hydratation importante","Si aggravation → vétérinaire"],vet:false,vetDelay:"Si persistance > 24h"};
+      }
+    }
+    // Ajouter urgences suisses si vétérinaire recommandé
+    if(res.vet&&res.gravity==="urgence"){
+      res.actions=[...res.actions,"🇨🇭 Antipoison Zürich: +41 44 251 51 51","🏥 VetoAdom Vaud: 021 552 75 75"];
+    }
+    setResult(res);setLoad(false);
+  };
+
+  const gc={green:C.green,orange:C.gold,red:C.red,purple:"#9C27B0"};
+  const gb={green:C.greenL,orange:C.goldL,red:"#FFEBEE",purple:"#F3E5F5"};
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Espace Santé 🏥</h2>
+    <p style={{color:C.textL,fontSize:13,margin:"0 0 16px"}}>Évalue les symptômes de {dog.name}</p>
+    {/* Numéros urgences Suisse */}
+    <Card style={{background:"linear-gradient(135deg,#FFEBEE,#FFF3E0)"}}>
+      <h4 style={{color:C.red,margin:"0 0 10px",fontSize:14}}>🆘 Urgences vétérinaires Suisse</h4>
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        <a href="tel:+41442515151" style={{textDecoration:"none",background:"white",borderRadius:12,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <p style={{margin:"0 0 2px",fontSize:12,fontWeight:700,color:C.text}}>Antipoison vétérinaire 🇨🇭</p>
+            <p style={{margin:0,fontSize:11,color:C.textL}}>Univ. Zürich — 24h/24 7j/7</p>
+          </div>
+          <p style={{margin:0,fontWeight:800,color:C.red,fontSize:14}}>+41 44 251 51 51</p>
+        </a>
+        <a href="tel:0215527575" style={{textDecoration:"none",background:"white",borderRadius:12,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <p style={{margin:"0 0 2px",fontSize:12,fontWeight:700,color:C.text}}>VetoAdom Vaud 🐾</p>
+            <p style={{margin:0,fontSize:11,color:C.textL}}>Vaud/Fribourg — 24h/24</p>
+          </div>
+          <p style={{margin:0,fontWeight:800,color:C.red,fontSize:14}}>021 552 75 75</p>
+        </a>
+        <a href="tel:0225125255" style={{textDecoration:"none",background:"white",borderRadius:12,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <p style={{margin:"0 0 2px",fontSize:12,fontWeight:700,color:C.text}}>VetoAdom Genève 🐾</p>
+            <p style={{margin:0,fontSize:11,color:C.textL}}>Genève/GE — 24h/24</p>
+          </div>
+          <p style={{margin:0,fontWeight:800,color:C.red,fontSize:14}}>022 552 55 05</p>
+        </a>
+        <a href="tel:0225122424" style={{textDecoration:"none",background:"white",borderRadius:12,padding:"10px 14px",display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+          <div>
+            <p style={{margin:"0 0 2px",fontSize:12,fontWeight:700,color:C.text}}>VetUrgences Genève 🏥</p>
+            <p style={{margin:0,fontSize:11,color:C.textL}}>Grand-Saconnex — 24h/24</p>
+          </div>
+          <p style={{margin:0,fontWeight:800,color:C.red,fontSize:14}}>022 512 24 24</p>
+        </a>
+      </div>
+    </Card>
+    <div style={{background:C.goldL,borderRadius:14,padding:"10px 14px",marginBottom:14,display:"flex",gap:8,alignItems:"center"}}>
+      <span>⚕️</span>
+      <p style={{margin:0,fontSize:12,color:C.gold,fontWeight:600}}>Sources : Institut Vétérinaire Univ. Zürich, VetoAdom Léman, VetUrgences GE. Complété par Gemini IA.</p>
+    </div>
+    <Card>
+      <p style={{margin:"0 0 12px",fontWeight:700,color:C.text}}>Symptômes observés :</p>
+      <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:8,marginBottom:14}}>
+        {SL.map(s=><button key={s.id} onClick={()=>tog(s.id)} style={{padding:"10px 12px",borderRadius:12,border:"2px solid "+(syms.includes(s.id)?C.blue:C.blueM),background:syms.includes(s.id)?C.blueL:"white",cursor:"pointer",display:"flex",alignItems:"center",gap:8,transition:"all 0.2s"}}>
+          <span style={{fontSize:18}}>{s.e}</span><span style={{fontSize:12,fontWeight:600,color:syms.includes(s.id)?C.blue:C.textL}}>{s.l}</span>
+        </button>)}
+      </div>
+      <Inp value={other} onChange={setOther} placeholder="Autre symptôme à décrire…"/>
+      <Btn onClick={evaluate} disabled={load||(syms.length===0&&!other.trim())}>{load?"Analyse…":"🏥 Évaluer"}</Btn>
+    </Card>
+    {result&&<Card className="fade">
+      <div style={{background:gb[result.color]||C.goldL,borderRadius:14,padding:"16px",marginBottom:14}}>
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:8}}>
+          <p style={{margin:0,fontWeight:800,color:gc[result.color]||C.gold,fontSize:16}}>{result.title}</p>
+          <span style={{background:gc[result.color],color:"white",borderRadius:20,padding:"4px 10px",fontSize:11,fontWeight:700}}>{result.gravity}</span>
+        </div>
+        <p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.5}}>{result.summary}</p>
+      </div>
+      {result.raceNote&&<div style={{background:C.purpleL,borderRadius:12,padding:"10px 14px",marginBottom:12}}><p style={{margin:0,fontSize:12,color:C.purple,fontWeight:700}}>🧬 {result.raceNote}</p></div>}
+      {result.actions?.map((a,i)=><div key={i} style={{display:"flex",gap:10,marginBottom:10}}>
+        <div style={{width:26,height:26,borderRadius:"50%",background:C.blueL,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12,fontWeight:800,color:C.blue}}>{i+1}</div>
+        <p style={{margin:0,fontSize:13,color:C.text,lineHeight:1.5}}>{a}</p>
+      </div>)}
+      {result.vet&&<div style={{background:"#FFEBEE",borderRadius:12,padding:"12px 14px",marginTop:10}}><p style={{margin:0,fontWeight:700,color:C.red,fontSize:13}}>🩺 Vétérinaire recommandé — {result.vetDelay}</p></div>}
+    </Card>}
+  </div>;
+}
+
+const BASE_R=[
+  {cat:"repas",title:"Boulettes poulet & carottes",emoji:"🍗",time:"20 min",diff:"Facile",ingredients:["200g poulet haché","1 carotte râpée","1 œuf","50g farine de riz"],steps:["Mélanger tous les ingrédients","Former des petites boulettes (taille noix)","Cuire 15 min à 180°C sur papier sulfurisé","Laisser refroidir complètement avant de servir"],tip:"Se conserve 3 jours au réfrigérateur, 3 mois au congélateur.",source:"Dr. Karen Becker, nutritionniste vétérinaire"},
+  {cat:"repas",title:"Soupe légumes du soir",emoji:"🥕",time:"15 min",diff:"Facile",ingredients:["1 courgette","1 carotte","100g riz cuit","500ml eau sans sel"],steps:["Couper les légumes en petits dés","Faire bouillir 10 min dans l'eau","Mixer grossièrement (garder des morceaux)","Mélanger avec le riz cuit refroidi"],tip:"Idéal pour les estomacs sensibles et les convalescences.",source:"Association Vétérinaire Canine"},
+  {cat:"repas",title:"Riz bœuf & haricots verts",emoji:"🥩",time:"20 min",diff:"Facile",ingredients:["150g bœuf haché (5% MG)","100g riz blanc cuit","50g haricots verts","1 c.c. huile de colza"],steps:["Cuire le riz à l'eau sans sel","Faire revenir le bœuf à sec sans assaisonnement","Cuire les haricots à la vapeur 8 min","Mélanger tous les ingrédients et laisser refroidir"],tip:"Repas post-gastro parfait. Aussi bon comme repas principal.",source:"FACCO"},
+  {cat:"biscuits",title:"Biscuits os à la patate douce",emoji:"🦴",time:"35 min",diff:"Facile",ingredients:["200g patate douce cuite écrasée","150g farine de riz (sans gluten)","1 œuf","1 c.s. huile de coco"],steps:["Préchauffer le four à 175°C","Mélanger patate douce, farine, œuf et huile","Pétrir jusqu'à obtenir une pâte ferme","Étaler à 5mm et découper en formes d'os","Cuire 25 min jusqu'à dorés","Laisser refroidir sur grille — ils durcissent en refroidissant"],tip:"Se conservent 2 semaines dans une boîte hermétique. Riche en bêta-carotène !",source:"Vétérinaire Dr. Angie Krause"},
+  {cat:"biscuits",title:"Cookies cacahuète & banane",emoji:"🥜",time:"30 min",diff:"Facile",ingredients:["1 banane bien mûre","100g beurre de cacahuète SANS xylitol","150g farine d'avoine","1 œuf"],steps:["Écraser la banane à la fourchette","Mélanger avec le beurre de cacahuète et l'œuf","Incorporer la farine d'avoine","Former des petites boules et aplatir","Cuire 15-18 min à 180°C","Refroidir sur grille"],tip:"⚠️ Vérifie que le beurre de cacahuète ne contient PAS de xylitol ! Conservation 1 semaine.",source:"Recette validée vétérinaire"},
+  {cat:"biscuits",title:"Biscuits saumon & aneth",emoji:"🐟",time:"30 min",diff:"Moyen",ingredients:["1 boîte saumon au naturel (180g)","100g farine de riz","50g flocons d'avoine","1 œuf","1 c.s. aneth séché"],steps:["Égoutter et écraser le saumon","Mélanger tous les ingrédients jusqu'à pâte homogène","Si trop collant, ajouter farine","Étaler à 3-4mm et découper","Cuire 20 min à 170°C","Laisser sécher 10 min supplémentaires dans le four éteint"],tip:"Super friandise pour le dressage ! Riche en oméga-3.",source:"Association Canine Internationale"},
+  {cat:"biscuits",title:"Croquettes maison au poulet",emoji:"🍪",time:"40 min",diff:"Moyen",ingredients:["300g poulet cuit haché","200g farine complète","100g flocons d'avoine","2 œufs","1 c.s. persil haché","1 c.s. huile d'olive"],steps:["Mixer le poulet cuit finement","Mélanger tous les ingrédients secs","Ajouter les œufs et l'huile","Incorporer le poulet mixé","Façonner en petites croquettes ovales","Cuire 25 min à 180°C en retournant à mi-cuisson"],tip:"Idéales comme friandises d'entraînement. Congèle très bien.",source:"Dr. Barbara Royal, vétérinaire"},
+  {cat:"friandises",title:"Glace yaourt & myrtilles",emoji:"🍓",time:"5 min + 2h congélation",diff:"Facile",ingredients:["200g yaourt grec nature (sans sucre)","50g myrtilles","50g fraises","1 c.c. miel (optionnel)"],steps:["Mixer les fruits avec le yaourt","Ajouter le miel si souhaité","Verser dans des moules à glaçons ou petits pots","Congeler minimum 2h","Démouler et servir directement"],tip:"Parfait pour les chaudes journées d'été ! Les myrtilles sont antioxydantes.",source:"Vétérinaire Dr. Marty Goldstein"},
+  {cat:"friandises",title:"Cubes de thon & fromage blanc",emoji:"🐠",time:"25 min",diff:"Facile",ingredients:["1 boîte thon au naturel","150g fromage blanc 0%","100g farine de riz","1 œuf"],steps:["Égoutter et écraser le thon","Mélanger avec le fromage blanc et l'œuf","Incorporer la farine","Verser dans un moule rectangulaire","Cuire 20 min à 175°C","Laisser refroidir et couper en petits cubes"],tip:"Cubes parfaits pour le rappel et le dressage !",source:"Nutritionniste canin"},
+  {cat:"sante",title:"Bouillon anti-arthrite",emoji:"🦴",time:"3h",diff:"Facile",ingredients:["500g os à moelle","2 carottes","2 branches céleri","1 c.s. vinaigre de cidre","2L eau"],steps:["Mettre les os dans l'eau avec le vinaigre (aide à extraire les minéraux)","Ajouter les légumes coupés","Cuire à feu très doux 3-4h","Filtrer et laisser refroidir","Retirer la graisse solidifiée en surface","Servir tiède (100-150ml/jour)"],tip:"Excellent pour les articulations. Riche en collagène et glucosamine naturelle.",source:"Holistic Veterinary Association"},
+];
+
+function PageRecettes({dog}){
+  const [sel,setSel]=useState(null);
+
+  if(sel) return <div style={{padding:"24px 16px"}} className="fade">
+    <button onClick={()=>setSel(null)} style={{background:"none",border:"none",cursor:"pointer",color:C.blue,fontWeight:700,fontSize:14,marginBottom:16,padding:0}}>← Retour</button>
+    <div style={{textAlign:"center",marginBottom:20}}>
+      <span style={{fontSize:52}}>{sel.emoji}</span>
+      <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"10px 0 8px",fontSize:22}}>{sel.title}</h2>
+      <div style={{display:"flex",gap:8,justifyContent:"center"}}><Tag>⏱ {sel.time}</Tag><Tag color="green">{sel.diff}</Tag></div>
+    </div>
+    <Card><p style={{margin:"0 0 12px",fontWeight:700,color:C.text}}>🛒 Ingrédients</p>{sel.ingredients.map((ing,i)=><p key={i} style={{margin:"6px 0",fontSize:14,color:C.text}}>• {ing}</p>)}</Card>
+    <Card><p style={{margin:"0 0 12px",fontWeight:700,color:C.text}}>👩‍🍳 Préparation</p>{sel.steps.map((s,i)=><div key={i} style={{display:"flex",gap:12,marginBottom:10}}><div style={{width:26,height:26,borderRadius:"50%",background:"linear-gradient(135deg,"+C.blue+","+C.purple+")",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,fontSize:12,fontWeight:800,color:"white"}}>{i+1}</div><p style={{margin:0,fontSize:14,color:C.text,lineHeight:1.5}}>{s}</p></div>)}</Card>
+    {sel.tip&&<Card style={{background:C.goldL}}><p style={{margin:0,fontSize:13,color:C.gold,fontWeight:700}}>💡 {sel.tip}</p></Card>}
+    {sel.source&&<p style={{color:C.textL,fontSize:11,textAlign:"center",marginTop:8}}>⚕️ Source : {sel.source}</p>}
+  </div>;
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Recettes 🍳</h2>
+    <p style={{color:C.textL,fontSize:13,margin:"0 0 16px"}}>Recettes saines pour {dog.name}</p>
+    <div style={{background:C.blueL,borderRadius:14,padding:"10px 14px",marginBottom:14,display:"flex",gap:8,alignItems:"center"}}>
+      <span>⚕️</span><p style={{margin:0,fontSize:12,color:C.blue,fontWeight:600}}>Recettes validées par des nutritionnistes vétérinaires. Jamais de sel, oignon, ail, chocolat, raisin, xylitol.</p>
+    </div>
+    {/* Filtres */}
+    {(()=>{
+      const [cf,setCf]=useState("tous");
+      const cats=[["tous","Tout 🍽️"],["repas","Repas 🥘"],["biscuits","Biscuits 🦴"],["friandises","Friandises 🍓"],["sante","Santé 💊"]];
+      const filtered=cf==="tous"?BASE_R:BASE_R.filter(r=>r.cat===cf);
+      return <>
+        <div style={{display:"flex",gap:8,overflowX:"auto",marginBottom:14,paddingBottom:4}}>
+          {cats.map(([v,l])=><button key={v} onClick={()=>setCf(v)} style={{whiteSpace:"nowrap",padding:"8px 14px",borderRadius:20,border:"2px solid "+(cf===v?C.blue:C.blueM),background:cf===v?C.blueL:"white",color:cf===v?C.blue:C.textL,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"Nunito,sans-serif"}}>{l}</button>)}
+        </div>
+        {filtered.map((r,i)=><Card key={i} onClick={()=>setSel(r)} style={{cursor:"pointer",display:"flex",alignItems:"center",gap:14}}>
+          <span style={{fontSize:30}}>{r.emoji}</span>
+          <div style={{flex:1}}><p style={{margin:"0 0 4px",fontWeight:700,color:C.text,fontSize:14}}>{r.title}</p><div style={{display:"flex",gap:6}}><Tag>⏱ {r.time}</Tag><Tag color={r.cat==="biscuits"?"gold":r.cat==="friandises"?"pink":r.cat==="sante"?"green":"blue"}>{r.cat==="biscuits"?"🦴 Biscuit":r.cat==="friandises"?"🍓 Friandise":r.cat==="sante"?"💊 Santé":"🥘 Repas"}</Tag></div></div>
+          <span style={{color:C.blue,fontSize:20}}>›</span>
+        </Card>)}
+      </>;
+    })()}
+  </div>;
+}
+
+function PageJournal({dog}){
+  const KEY="zoomly_journal_"+dog.name;
+  const [entries,setEntries]=useState(()=>JSON.parse(localStorage.getItem(KEY)||"[]"));
+  const [note,setNote]=useState("");
+  const [mood,setMood]=useState("😊");
+  const [show,setShow]=useState(false);
+
+  const save=()=>{
+    if(!note.trim())return;
+    const e={id:Date.now(),date:new Date().toLocaleDateString("fr-FR"),note,mood};
+    const next=[e,...entries];
+    setEntries(next);localStorage.setItem(KEY,JSON.stringify(next));
+    setNote("");setShow(false);
+  };
+
+  const del=id=>{const next=entries.filter(e=>e.id!==id);setEntries(next);localStorage.setItem(KEY,JSON.stringify(next));};
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Journal 📖</h2>
+    <p style={{color:C.textL,fontSize:13,margin:"0 0 16px"}}>L'histoire de {dog.name}</p>
+    {show?<Card>
+      <p style={{margin:"0 0 12px",fontWeight:700,color:C.text}}>Nouvelle note</p>
+      <div style={{display:"flex",gap:8,marginBottom:12,flexWrap:"wrap"}}>
+        {["😊","⚡","🌟","😴","🏆","❤️","😰","🍗","🎯","🐾"].map(e=><span key={e} onClick={()=>setMood(e)} style={{fontSize:22,cursor:"pointer",opacity:mood===e?1:0.35,transition:"opacity 0.2s"}}>{e}</span>)}
+      </div>
+      <Inp multiline value={note} onChange={setNote} placeholder="Qu'est-ce qui s'est passé aujourd'hui ?" rows={4}/>
+      <div style={{display:"flex",gap:10}}><Btn onClick={save} disabled={!note.trim()}>💾 Sauvegarder</Btn><Btn onClick={()=>setShow(false)} ghost>Annuler</Btn></div>
+    </Card>:<Btn onClick={()=>setShow(true)} style={{marginBottom:16}}>+ Ajouter une note</Btn>}
+    {entries.length===0&&!show&&<div style={{textAlign:"center",padding:"40px 0",color:C.textL}}><span style={{fontSize:48,display:"block",marginBottom:12}}>📝</span><p>Aucune note pour l'instant</p></div>}
+    {entries.map((e,i)=><div key={e.id} style={{display:"flex",gap:12,marginBottom:16}}>
+      <div style={{display:"flex",flexDirection:"column",alignItems:"center"}}>
+        <div style={{width:40,height:40,borderRadius:"50%",background:C.blueL,display:"flex",alignItems:"center",justifyContent:"center",fontSize:20,flexShrink:0}}>{e.mood}</div>
+        {i<entries.length-1&&<div style={{width:2,flex:1,background:C.blueL,margin:"6px 0"}}/>}
+      </div>
+      <Card style={{flex:1,marginBottom:0}}>
+        <div style={{display:"flex",justifyContent:"space-between",marginBottom:4}}>
+          <p style={{margin:0,fontSize:11,color:C.textL,fontWeight:600}}>{e.date}</p>
+          <button onClick={()=>del(e.id)} style={{background:"none",border:"none",cursor:"pointer",color:C.textL,fontSize:14,padding:0}}>✕</button>
+        </div>
+        <p style={{margin:0,color:C.text,fontSize:14,lineHeight:1.5}}>{e.note}</p>
+      </Card>
+    </div>)}
+  </div>;
+}
+
+
+// ── GEMINI IA ─────────────────────────────────────────────
+const GEMINI_KEY = "AIzaSyA-m_i_9oo-JMWl58aCrH6kT76IEbli-6M";
+
+async function callGemini(systemPrompt, userMsg) {
+  try {
+    const res = await fetch(
+      "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=" + GEMINI_KEY,
+      {
+        method: "POST",
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          contents: [{
+            parts: [{text: systemPrompt + "\n\n" + userMsg}]
+          }]
+        })
+      }
+    );
+    const data = await res.json();
+    return data.candidates?.[0]?.content?.parts?.[0]?.text || "";
+  } catch(e) {
+    return "";
+  }
+}
+
+function PageChat({dog}){
+  const [msgs,setMsgs]=useState([{r:"a",t:"Woof ! 🐾 Je suis Zoomly, ton coach canin IA propulsé par Gemini ! Pose-moi toutes tes questions sur "+dog.name+" !"}]);
+  const [inp,setInp]=useState("");
+  const [load,setLoad]=useState(false);
+  const bot=useRef(null);
+  useEffect(()=>bot.current?.scrollIntoView({behavior:"smooth"}),[msgs]);
+
+  function getConseilRace(race){
+    const conseils={
+      "Berger Australien":"⚡ Énergie très élevée — 2h d'exercice/jour minimum\n🧠 Très intelligent — besoin de stimulation mentale\n🎯 Excellent pour l'agility et le frisbee\n💡 Peut développer des comportements compulsifs sans stimulation",
+      "Border Collie":"🏆 Race la plus intelligente — défis mentaux indispensables\n🏃 Exercice intense quotidien obligatoire\n🎯 L'agility est parfait pour cette race\n⚠️ Peut être anxieux sans travail",
+      "Labrador":"❤️ Très sociable et affectueux\n🍗 Tendance à l'obésité — surveille les portions\n🎾 Adore nager et rapporter\n✅ Idéal pour les familles avec enfants",
+      "Golden Retriever":"😊 Tempérament doux et patient\n🎾 Adore jouer et nager\n🍗 Surveille le poids — tendance à l'obésité\n🏥 Prédisposé aux dysplasies — RDV véto réguliers",
+    };
+    return conseils[race]||"📍 Pose-moi des questions sur "+race+" — je ferai de mon mieux avec ma base de données !";
+  }
+
+  const REPONSES_AUTO={
+    "balade":"🚶 La durée recommandée dépend de l'âge et de la race. Pour un chiot, suivez la règle des 5 minutes par mois d'âge. Pour un adulte, minimum 30 min à 1h par jour.",
+    "manger":"🍽️ Les chiens adultes mangent généralement 2 fois par jour. Évitez le repas juste avant/après l'exercice pour éviter les risques de torsion.",
+    "vaccin":"💉 Les vaccins essentiels : CHPPI (Carré, Hépatite, Parvovirose, Parainfluenza). Rappel annuel recommandé. Rage obligatoire si voyage.",
+    "puce":"🦟 Traitement antiparasitaire mensuel recommandé. Plusieurs formes : pipette, comprimé, collier. Demande conseil à ton vétérinaire.",
+    "dressage":"🎓 Commence par les bases : assis, couché, reste, rappel. Sessions courtes (5-10 min) et positives. Jamais de punition !",
+    "aboie":"🔊 Les aboiements excessifs peuvent signaler anxiété, ennui ou manque d'exercice. Ignore les aboiements pour l'attention, récompense le calme.",
+    "gratte":"🐾 Les démangeaisons peuvent venir d'allergies, parasites ou problèmes de peau. Si persistant, consulte un vétérinaire.",
+    "dort":"😴 Un chien adulte dort 12-14h/jour, un chiot jusqu'à 18h. Normal ! Assure-lui un endroit confortable et calme.",
+  };
+
+  const autoReply=msg=>{
+    const m=msg.toLowerCase();
+    for(const [key,rep] of Object.entries(REPONSES_AUTO)){
+      if(m.includes(key))return rep;
+    }
+    return "🤔 Bonne question ! L'IA Gemini sera bientôt disponible pour répondre précisément. En attendant, consulte la section Santé ou Éducation de l'app, ou demande à ton vétérinaire. 🐾";
+  };
+
+  const send=async()=>{
+    if(!inp.trim()||load)return;
+    const msg=inp.trim();setInp("");
+    setMsgs(p=>[...p,{r:"u",t:msg}]);
+    setLoad(true);
+    const history=msgs.map(m=>(m.r==="a"?"Zoomly: ":"Maître: ")+m.t).join("\n");
+    const sys="Tu es Zoomly, coach canin IA bienveillant et expert. Réponds en français avec quelques emojis. Chien: "+dog.name+", "+dog.raceLabel+", "+dog.age+" "+dog.ageUnit+", "+dog.weight+"kg, "+(dog.sex==="female"?"femelle":"mâle")+". Notes: "+(dog.notes||"aucune")+". Adapte TOUJOURS tes conseils à la race spécifique. Réponses courtes et pratiques. Historique:\n"+history;
+    const rep=await callGemini(sys,msg);
+    setMsgs(p=>[...p,{r:"a",t:rep||"Oops, connexion impossible. Réessaie ! 🐾"}]);
+    setLoad(false);
+  };
+
+  return <div style={{display:"flex",flexDirection:"column",height:"calc(100vh - 130px)"}}>
+    <div style={{padding:"24px 16px 10px"}}>
+      <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:22}}>Coach 🤖</h2>
+      <div style={{background:C.goldL,borderRadius:10,padding:"6px 12px",display:"inline-block"}}>
+        <p style={{margin:0,fontSize:11,color:C.green,fontWeight:700}}>✅ Gemini IA activé !</p>
+      </div>
+    </div>
+    <div style={{flex:1,overflowY:"auto",padding:"0 16px"}}>
+      {msgs.map((m,i)=><div key={i} style={{display:"flex",justifyContent:m.r==="u"?"flex-end":"flex-start",marginBottom:12,alignItems:"flex-end",gap:8}}>
+        {m.r==="a"&&<div style={{background:"white",borderRadius:"50%",padding:4,boxShadow:"0 2px 8px rgba(74,127,224,0.2)",flexShrink:0}}><Mascot size={28}/></div>}
+        <div style={{maxWidth:"78%",background:m.r==="u"?"linear-gradient(135deg,"+C.blue+","+C.purple+")":"white",color:m.r==="u"?"white":C.text,borderRadius:m.r==="u"?"20px 20px 4px 20px":"20px 20px 20px 4px",padding:"12px 16px",fontSize:13,lineHeight:1.6,boxShadow:"0 2px 12px rgba(74,127,224,0.15)",whiteSpace:"pre-line"}}>{m.t}</div>
+      </div>)}
+      {load&&<div style={{display:"flex",gap:8,alignItems:"flex-end",marginBottom:12}}>
+        <div style={{background:"white",borderRadius:"50%",padding:4,flexShrink:0}}><Mascot size={28}/></div>
+        <div style={{background:"white",borderRadius:"20px 20px 20px 4px",padding:"14px 18px"}}><span style={{display:"inline-flex",gap:4}}>{[0,1,2].map(i=><span key={i} style={{width:8,height:8,borderRadius:"50%",background:C.blue,display:"inline-block",animation:"bounce 1s ease "+i*0.2+"s infinite"}}/>)}</span></div>
+      </div>}
+      <div ref={bot}/>
+    </div>
+    <div style={{padding:"6px 16px",display:"flex",gap:8,overflowX:"auto",paddingBottom:4}}>
+      {["Durée de balade ?","Quand vacciner ?","Comment dresser ?","Il aboie beaucoup","Alimentation équilibrée ?"].map(s=><button key={s} onClick={()=>setInp(s)} style={{whiteSpace:"nowrap",background:"white",border:"2px solid "+C.blueM,borderRadius:20,padding:"7px 14px",color:C.blue,fontSize:12,fontWeight:700,cursor:"pointer",flexShrink:0}}>{s}</button>)}
+    </div>
+    <div style={{padding:"8px 16px 24px",display:"flex",gap:10}}>
+      <input value={inp} onChange={e=>setInp(e.target.value)} onKeyDown={e=>e.key==="Enter"&&send()} placeholder="Pose ta question…" style={{flex:1,padding:"13px 18px",borderRadius:99,border:"2px solid "+C.blueM,fontSize:14,outline:"none",color:C.text,fontFamily:"Nunito,sans-serif",background:"white"}}/>
+      <button onClick={send} disabled={load} style={{width:48,height:48,borderRadius:"50%",background:"linear-gradient(135deg,"+C.blue+","+C.purple+")",border:"none",cursor:"pointer",display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0,opacity:load?0.6:1}}>
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+      </button>
+    </div>
+  </div>;
+}
+
+const CARACTERES_OPTIONS=["Joueur","Calme","Énergique","Affectueux","Indépendant","Timide","Courageux","Têtu","Obéissant","Sociable","Protecteur","Anxieux","Curieux","Gourmand","Dominant","Doux","Hyperactif","Paresseux"];
+
+function PageProfil({dog,user,onLogout,onDogUpdate}){
+  const signe=getSigneFromDate(dog.birthday);
+  const [edit,setEdit]=useState(false);
+  const [showFiche,setShowFiche]=useState(false);
+  const [form,setForm]=useState({...dog});
+  const [load,setLoad]=useState(false);
+  const setF=(k,v)=>setForm(p=>({...p,[k]:v}));
+
+  const togCaractere=c=>{
+    const list=form.caracteres||[];
+    setF("caracteres",list.includes(c)?list.filter(x=>x!==c):[...list,c]);
+  };
+
+  const save=async()=>{
+    setLoad(true);
+    const updated={...form};
+    await window._fb.updateDoc("users",user.uid,{dog:updated});
+    onDogUpdate(updated);
+    setEdit(false);setLoad(false);
+  };
+
+  if(showFiche) return <FicheRace race={dog.raceLabel} onClose={()=>setShowFiche(false)}/>;
+
+  if(edit) return <div style={{padding:"24px 16px"}} className="fade">
+    <button onClick={()=>setEdit(false)} style={{background:"none",border:"none",cursor:"pointer",color:C.blue,fontWeight:700,fontSize:14,marginBottom:16,padding:0}}>← Annuler</button>
+    <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 16px"}}>Modifier le profil ✏️</h2>
+    <Card>
+      <Inp label="Prénom" value={form.name||""} onChange={v=>setF("name",v)} placeholder="Prénom"/>
+      <Inp label="Date de naissance" type="date" value={form.birthday||""} onChange={v=>setF("birthday",v)}/>
+      <Inp label="Âge" type="number" value={form.age||""} onChange={v=>setF("age",v)} placeholder="Ex: 2"/>
+      <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:C.text}}>Unité d'âge</p>
+      <div style={{display:"flex",gap:10,marginBottom:14}}>
+        {["mois","ans"].map(u=><button key={u} onClick={()=>setF("ageUnit",u)} style={{flex:1,padding:"10px",borderRadius:14,border:"2px solid "+(form.ageUnit===u?C.blue:C.blueM),background:form.ageUnit===u?C.blueL:"white",color:form.ageUnit===u?C.blue:C.textL,fontWeight:700,fontSize:13,cursor:"pointer",fontFamily:"Nunito,sans-serif"}}>{u}</button>)}
+      </div>
+      <Inp label="Poids (kg)" type="number" value={form.weight||""} onChange={v=>setF("weight",v)} placeholder="Ex: 14"/>
+      <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:C.text}}>Sexe</p>
+      <div style={{display:"flex",gap:10,marginBottom:14}}>
+        {[["female","♀ Femelle"],["male","♂ Mâle"]].map(([v,l])=><button key={v} onClick={()=>setF("sex",v)} style={{flex:1,padding:"11px",borderRadius:14,cursor:"pointer",fontWeight:700,border:"2px solid "+(form.sex===v?C.blue:C.blueM),background:form.sex===v?C.blueL:"white",color:form.sex===v?C.blue:C.textL,fontFamily:"Nunito,sans-serif"}}>{l}</button>)}
+      </div>
+      <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:C.text}}>Stérilisé·e ?</p>
+      <div style={{display:"flex",gap:10,marginBottom:14}}>
+        {[["yes","✓ Oui"],["no","✗ Non"]].map(([v,l])=><button key={v} onClick={()=>setF("sterilized",v)} style={{flex:1,padding:"10px",borderRadius:14,cursor:"pointer",fontWeight:700,border:"2px solid "+(form.sterilized===v?C.blue:C.blueM),background:form.sterilized===v?C.blueL:"white",color:form.sterilized===v?C.blue:C.textL,fontFamily:"Nunito,sans-serif"}}>{l}</button>)}
+      </div>
+      <p style={{margin:"0 0 8px",fontSize:13,fontWeight:700,color:C.text}}>Caractère de {form.name} (plusieurs choix)</p>
+      <div style={{display:"flex",flexWrap:"wrap",gap:8,marginBottom:14}}>
+        {CARACTERES_OPTIONS.map(c=>{
+          const sel=(form.caracteres||[]).includes(c);
+          return <button key={c} onClick={()=>togCaractere(c)} style={{padding:"7px 14px",borderRadius:20,border:"2px solid "+(sel?C.blue:C.blueM),background:sel?C.blueL:"white",color:sel?C.blue:C.textL,fontWeight:700,fontSize:12,cursor:"pointer",fontFamily:"Nunito,sans-serif"}}>{sel?"✓ ":""}{c}</button>;
+        })}
+      </div>
+      <Inp label="Notes de santé" multiline value={form.notes||""} onChange={v=>setF("notes",v)} placeholder="Allergies, maladies…"/>
+      <Btn onClick={save} disabled={load}>{load?"Sauvegarde…":"💾 Sauvegarder"}</Btn>
+    </Card>
+  </div>;
+
+  return <div style={{padding:"24px 16px"}} className="fade">
+    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginBottom:20}}>
+      <h2 style={{color:C.text,fontFamily:"Georgia,serif",margin:0,fontSize:22}}>Profil 🐾</h2>
+      <button onClick={()=>setEdit(true)} style={{background:C.blueL,border:"none",borderRadius:20,padding:"8px 16px",color:C.blue,fontWeight:700,fontSize:13,cursor:"pointer"}}>✏️ Modifier</button>
+    </div>
+
+    <div style={{textAlign:"center",marginBottom:20}}>
+      <div style={{width:110,height:110,borderRadius:"50%",background:"linear-gradient(135deg,"+C.blue+","+C.purple+")",margin:"0 auto 14px",display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",boxShadow:"0 8px 24px rgba(74,127,224,0.3)"}}><Mascot size={90}/></div>
+      <h3 style={{color:C.text,fontFamily:"Georgia,serif",margin:"0 0 4px",fontSize:26}}>{dog.name}</h3>
+      <p style={{color:C.textL,fontSize:13,margin:"0 0 10px"}}>{dog.raceLabel}</p>
+      <div style={{display:"flex",gap:6,justifyContent:"center",flexWrap:"wrap"}}>
+        <Tag>{dog.age} {dog.ageUnit}</Tag>
+        <Tag color="gold">{dog.weight} kg</Tag>
+        <Tag color="purple">{dog.sex==="female"?"Femelle":"Mâle"}</Tag>
+        <Tag color={dog.sterilized==="yes"?"green":"orange"}>{dog.sterilized==="yes"?"Stérilisé·e":"Non stérilisé·e"}</Tag>
+        {signe&&<Tag color="pink">{signe.emoji} {signe.nom}</Tag>}
+      </div>
+    </div>
+
+    {/* Caractère */}
+    {dog.caracteres&&dog.caracteres.length>0&&<Card>
+      <h4 style={{color:C.text,margin:"0 0 10px"}}>🎭 Caractère de {dog.name}</h4>
+      <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+        {dog.caracteres.map(c=><Tag key={c} color="purple">{c}</Tag>)}
+      </div>
+    </Card>}
+
+    {/* Fiche race */}
+    <Card onClick={()=>setShowFiche(true)} style={{cursor:"pointer",background:"linear-gradient(135deg,"+C.blueL+","+C.purpleL+")"}}>
+      <div style={{display:"flex",justifyContent:"space-between",alignItems:"center"}}>
+        <div>
+          <h4 style={{color:C.text,margin:"0 0 4px"}}>🏷️ Fiche race complète</h4>
+          <p style={{margin:0,fontSize:12,color:C.textL}}>{dog.raceLabel} — caractère, santé, alimentation…</p>
+        </div>
+        <span style={{color:C.blue,fontSize:22}}>›</span>
+      </div>
+    </Card>
+
+    <Card style={{padding:0,overflow:"hidden"}}>
+      {[["📧 Email",user.email],["🎂 Née le",dog.birthday?new Date(dog.birthday).toLocaleDateString("fr-FR"):"Non renseignée"],["🎂 Âge",dog.age+" "+dog.ageUnit],["⚖️ Poids",dog.weight+" kg"]].map(([k,v],i,a)=><div key={k} style={{padding:"14px 18px",display:"flex",justifyContent:"space-between",borderBottom:i<a.length-1?"1px solid "+C.blueL:"none"}}>
+        <span style={{color:C.textL,fontSize:13}}>{k}</span>
+        <span style={{color:C.text,fontWeight:700,fontSize:13,maxWidth:"55%",textAlign:"right",wordBreak:"break-all"}}>{v}</span>
+      </div>)}
+    </Card>
+
+    {dog.notes&&<Card><p style={{margin:"0 0 8px",fontWeight:700,color:C.text}}>📝 Notes de santé</p><p style={{margin:0,color:C.textL,fontSize:13,lineHeight:1.6}}>{dog.notes}</p></Card>}
+    <button onClick={onLogout} style={{width:"100%",padding:"14px",borderRadius:16,border:"2px solid "+C.blueM,background:"transparent",color:C.textL,fontWeight:700,fontSize:14,cursor:"pointer",fontFamily:"Nunito,sans-serif",marginTop:8}}>Se déconnecter</button>
+  </div>;
+}
+
+// ── NAV ───────────────────────────────────────────────────
+const NAVS=[
+  {id:"home",l:"Accueil",e:"🏠"},
+  {id:"scanner",l:"Scanner",e:"🔍"},
+  {id:"sante",l:"Santé",e:"🏥"},
+  {id:"recettes",l:"Recettes",e:"🍳"},
+  {id:"education",l:"Éducation",e:"🎓"},
+  {id:"balades",l:"Balades",e:"🚶"},
+  {id:"carnet",l:"Carnet",e:"📅"},
+  {id:"rappels",l:"Rappels",e:"🔔"},
+  {id:"astro",l:"Astro",e:"🌙"},
+  {id:"album",l:"Photos",e:"📸"},
+  {id:"carte",l:"ID",e:"🆔"},
+  {id:"journal",l:"Journal",e:"📖"},
+  {id:"chat",l:"Coach",e:"🤖"},
+  {id:"profil",l:"Profil",e:"👤"},
+];
+
+// ── APP ───────────────────────────────────────────────────
+function App(){
+  const [user,setUser]=useState(null);
+  const [dog,setDog]=useState(null);
+  const [ready,setReady]=useState(false);
+  const [page,setPage]=useState("home");
+  const [onboard,setOnboard]=useState(false);
+  const [navPage,setNavPage]=useState(0); // pagination nav
+
+  useEffect(()=>{
+    const start=()=>{
+      if(!window._fb){setTimeout(start,200);return;}
+      window._fb.onAuth(async u=>{
+        if(u){
+          setUser(u);
+          try{
+            const snap=await window._fb.getDoc("users",u.uid);
+            if(snap.exists()){const d=snap.data();setDog(d.dog);}
+            else setOnboard(true);
+          }catch{setOnboard(true);}
+        }else{setUser(null);setDog(null);setOnboard(false);}
+        setReady(true);
+      });
+    };
+    if(window._fb)start();
+    else window.addEventListener("fb-ready",start,{once:true});
+  },[]);
+
+  const logout=async()=>{await window._fb.signOut();setUser(null);setDog(null);setPage("home");};
+
+  // Écran de chargement
+  if(!ready) return <div style={{minHeight:"100vh",background:"linear-gradient(160deg,"+C.blue+","+C.purple+")",display:"flex",alignItems:"center",justifyContent:"center",flexDirection:"column",gap:20}}>
+    <div style={{background:"white",borderRadius:28,padding:20,boxShadow:"0 8px 32px rgba(0,0,0,0.15)"}}><Mascot size={90}/></div>
+    <p style={{color:"white",fontFamily:"Georgia,serif",fontSize:22}}>Zoomly</p>
+    <Loader/>
+  </div>;
+
+  // AUTH EN PREMIER
+  if(!user) return <AuthScreen onAuth={(u,isNew)=>{setUser(u);if(isNew)setOnboard(true);}}/>;
+  if(onboard) return <Onboarding user={user} onDone={d=>{setDog(d);setOnboard(false);}}/>;
+  if(!dog) return <div style={{padding:32,textAlign:"center",color:C.textL}}>Chargement…</div>;
+
+  const pages={
+    home:<PageHome dog={dog}/>,
+    scanner:<PageScanner dog={dog}/>,
+    sante:<PageSante dog={dog}/>,
+    recettes:<PageRecettes dog={dog}/>,
+    education:<PageEducation dog={dog}/>,
+    balades:<PageBalades dog={dog}/>,
+    carnet:<PageCarnetSante dog={dog}/>,
+    rappels:<PageRappels dog={dog}/>,
+    astro:<PageAstrologie dog={dog}/>,
+    album:<PageAlbum dog={dog}/>,
+    carte:<PageCarteId dog={dog} user={user}/>,
+    journal:<PageJournal dog={dog}/>,
+    chat:<PageChat dog={dog}/>,
+    profil:<PageProfil dog={dog} user={user} onLogout={logout} onDogUpdate={d=>{setDog(d);}}/>,
+  };
+
+  // Nav paginée : 7 items par page
+  const navItems1=NAVS.slice(0,7);
+  const navItems2=NAVS.slice(7);
+  const currentNav=navPage===0?navItems1:navItems2;
+
+  return <div style={{maxWidth:430,margin:"0 auto",minHeight:"100vh",background:C.blueL,fontFamily:"Nunito,sans-serif",position:"relative"}}>
+    <div style={{paddingBottom:95,minHeight:"100vh",overflowY:"auto"}}>{pages[page]}</div>
+    <div style={{position:"fixed",bottom:0,left:"50%",transform:"translateX(-50%)",width:"100%",maxWidth:430,background:"white",borderTop:"1px solid "+C.blueM,zIndex:100,boxShadow:"0 -4px 20px rgba(74,127,224,0.15)"}}>
+      <div style={{display:"flex",justifyContent:"space-around",padding:"8px 4px 4px"}}>
+        {currentNav.map(n=><button key={n.id} onClick={()=>setPage(n.id)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,background:"none",border:"none",cursor:"pointer",color:page===n.id?C.blue:C.textL,padding:"0 2px",minWidth:0,flex:1}}>
+          <div style={{padding:"3px 6px",borderRadius:10,background:page===n.id?C.blueL:"transparent",fontSize:16,transition:"background 0.2s"}}>{n.e}</div>
+          <span style={{fontSize:8,fontWeight:page===n.id?800:500,whiteSpace:"nowrap"}}>{n.l}</span>
+        </button>)}
+        <button onClick={()=>setNavPage(p=>p===0?1:0)} style={{display:"flex",flexDirection:"column",alignItems:"center",gap:1,background:"none",border:"none",cursor:"pointer",color:C.textL,padding:"0 2px",flex:1}}>
+          <div style={{padding:"3px 6px",borderRadius:10,fontSize:16}}>{"···"}</div>
+          <span style={{fontSize:8,fontWeight:500}}>Plus</span>
+        </button>
+      </div>
+      <div style={{display:"flex",justifyContent:"center",gap:6,padding:"4px 0 12px"}}>
+        {[0,1].map(i=><div key={i} onClick={()=>setNavPage(i)} style={{width:i===navPage?20:6,height:6,borderRadius:99,background:i===navPage?C.blue:C.blueM,cursor:"pointer",transition:"all 0.3s"}}/>)}
+      </div>
+    </div>
+  </div>;
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
